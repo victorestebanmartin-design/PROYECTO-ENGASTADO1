@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Sistema de Engastado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=13">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>⚙️ Administración del Sistema</h1>
+            <a href="{{ url_for('main.home') }}" class="btn-admin">🔙 Volver al Inicio</a>
+        </header>
+
+        <!-- Sección: Subir Archivo Excel -->
+        <div class="card">
+            <h2>📤 Subir Archivo Excel</h2>
+            <p class="instruccion">Sube un nuevo archivo Excel con datos de cableado</p>
+            
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="input-group">
+                    <label for="file-upload">Seleccionar Archivo (.xlsx, .xls):</label>
+                    <input type="file" id="file-upload" name="file" accept=".xlsx,.xls" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">📤 Subir Archivo</button>
+            </form>
+            
+            <div id="upload-mensaje" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Asociar Código de Barras con Archivo -->
+        <div class="card">
+            <h2>🔗 Asociar Código de Barras</h2>
+            <p class="instruccion">Vincula un código de barras con un archivo Excel subido</p>
+            
+            <form id="asociar-form">
+                <div class="input-group">
+                    <label for="codigo-barras">Código de Barras:</label>
+                    <input type="text" id="codigo-barras" placeholder="Ej: CORADIA_IT_001" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="select-archivo">Archivo Excel:</label>
+                    <select id="select-archivo" required>
+                        <option value="">-- Seleccionar archivo --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="descripcion">Descripción:</label>
+                    <input type="text" id="descripcion" placeholder="Ej: Listado Cableado Coradia Italia" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="proyecto">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto" placeholder="Ej: Coradia Italia">
+                </div>
+
+                <button type="submit" class="btn-primary">✅ Asociar</button>
+            </form>
+            
+            <div id="asociar-mensaje" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Cortes Registrados -->
+        <div class="card">
+            <h2>📋 Cortes Registrados</h2>
+            <p class="instruccion">Lista de códigos de barras y archivos asociados</p>
+            
+            <button onclick="cargarCortes()" class="btn-secondary">🔄 Actualizar Lista</button>
+            
+            <div id="lista-cortes" class="tabla-container">
+                <p class="text-muted">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Sección: Archivos Disponibles -->
+        <div class="card">
+            <h2>📁 Archivos Excel Disponibles</h2>
+            <p class="instruccion">Archivos Excel subidos al sistema</p>
+            
+            <button onclick="cargarArchivos()" class="btn-secondary">🔄 Actualizar Lista</button>
+            
+            <div id="lista-archivos" class="tabla-container">
+                <p class="text-muted">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Sección: Gestión Organizacional -->
+        <div class="card">
+            <h2>🏢 Gestión Organizacional</h2>
+            <p class="instruccion">Administra la estructura de tu planta de producción</p>
+            
+            <div class="gestion-organizacional">
+                <a href="{{ url_for('main.gestion_puestos') }}" class="gestion-link-card">
+                    <div class="gestion-icon">🏭</div>
+                    <div class="gestion-content">
+                        <h3>Puestos y Máquinas</h3>
+                        <p>Gestiona puestos de trabajo, máquinas de producción y asignación de terminales</p>
+                        <div class="gestion-features">
+                            <span>• Crear y editar puestos</span>
+                            <span>• Gestionar máquinas</span>
+                            <span>• Asignar terminales</span>
+                        </div>
+                    </div>
+                    <div class="gestion-arrow">→</div>
+                </a>
+            </div>
+        </div>
+            
+            <div id="tab-puestos" class="tab-content active">
+                <div class="tab-header">
+                    <h3>Gestión de Puestos</h3>
+                    <button onclick="mostrarModalPuesto()" class="btn-primary btn-small">➕ Nuevo Puesto</button>
+                </div>
+                <div id="lista-puestos" class="puestos-container">
+                    <p class="text-muted">Cargando puestos...</p>
+                </div>
+            </div>
+            
+            <div id="tab-maquinas" class="tab-content">
+                <div class="tab-header">
+                    <h3>Gestión de Máquinas</h3>
+                    <button onclick="mostrarModalMaquina()" class="btn-primary btn-small">➕ Nueva Máquina</button>
+                </div>
+                <div id="lista-maquinas" class="maquinas-container">
+                    <p class="text-muted">Selecciona un puesto para ver sus máquinas</p>
+                </div>
+            </div>
+            
+            <div id="tab-asignaciones" class="tab-content">
+                <div class="tab-header">
+                    <h3>Asignación de Terminales</h3>
+                    <button onclick="cargarTerminalesParaAsignar()" class="btn-secondary">🔄 Cargar Terminales</button>
+                </div>
+                <div id="asignaciones-container">
+                    <div class="asignacion-grid">
+                        <div id="terminales-disponibles" class="terminales-panel">
+                            <h4>Terminales Disponibles</h4>
+                            <div class="terminales-list"></div>
+                        </div>
+                        <div id="maquinas-asignacion" class="maquinas-panel">
+                            <h4>Máquinas</h4>
+                            <div class="maquinas-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección: Gestión de Terminales (Original) -->
+        <div class="card">
+            <h2>🔌 Gestión de Terminales</h2>
+            <p class="instruccion">Activa o desactiva terminales para el sistema de engastado</p>
+            
+            <button onclick="cargarTerminales()" class="btn-secondary">🔄 Cargar Terminales</button>
+            
+            <div id="lista-terminales" class="terminales-admin-container">
+                <p class="text-muted">Haz clic en "Cargar Terminales" para ver la lista</p>
+            </div>
+        </div>
+
+        <!-- Sección: PELIGRO - Resetear Sistema -->
+        <div class="card" style="border: 3px solid #ef4444;">
+            <h2 style="color: #ef4444;">⚠️ ZONA DE PELIGRO</h2>
+            <p class="instruccion" style="color: #dc2626; font-weight: 600;">Esta acción eliminará TODOS los archivos Excel y TODOS los códigos de barras registrados. No se puede deshacer.</p>
+            
+            <button onclick="resetearSistema()" class="btn-danger" style="background-color: #dc2626; color: white; font-weight: 700;">
+                🗑️ RESETEAR TODO EL SISTEMA
+            </button>
+        </div>
+    </div>
+
+    <!-- Modales -->
+    <div id="modal-puesto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Puesto</h3>
+                <span class="modal-close" onclick="cerrarModal('modal-puesto')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="puesto-nombre">Nombre del Puesto:</label>
+                    <input type="text" id="puesto-nombre" placeholder="Ej: Puesto A - Línea 1">
+                </div>
+                <div class="input-group">
+                    <label for="puesto-descripcion">Descripción:</label>
+                    <textarea id="puesto-descripcion" placeholder="Descripción del puesto"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="cerrarModal('modal-puesto')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarPuesto()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-maquina" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nueva Máquina</h3>
+                <span class="modal-close" onclick="cerrarModal('modal-maquina')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="maquina-puesto">Puesto:</label>
+                    <select id="maquina-puesto" required>
+                        <option value="">-- Seleccionar puesto --</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="maquina-nombre">Nombre de la Máquina:</label>
+                    <input type="text" id="maquina-nombre" placeholder="Ej: Máquina Engastado 1">
+                </div>
+                <div class="input-group">
+                    <label for="maquina-modelo">Modelo:</label>
+                    <input type="text" id="maquina-modelo" placeholder="Ej: KOMAX Alpha 355">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="cerrarModal('modal-maquina')">Cancelar</button>
+                <button class="btn-primary" onclick="guardarMaquina()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Puestos y Máquinas - Sistema de Engastado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .gestion-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .gestion-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .gestion-header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2.5rem;
+        }
+        
+        .gestion-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .breadcrumb {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumb a {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        
+        .breadcrumb a:hover {
+            color: var(--primary-color);
+        }
+        
+        .btn-volver {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-volver:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="gestion-container">
+        <!-- Header -->
+        <div class="gestion-header">
+            <h1>🏢 Gestión de Puestos y Máquinas</h1>
+            <p>Administra la estructura organizacional de tu planta de producción</p>
+        </div>
+        
+        <!-- Navigation -->
+        <div class="header-actions">
+            <div class="breadcrumb">
+                <a href="{{ url_for('main.home') }}">🏠 Inicio</a> 
+                → <a href="{{ url_for('main.admin') }}">⚙️ Admin</a> 
+                → 🏢 Gestión de Puestos
+            </div>
+            <a href="{{ url_for('main.admin') }}" class="btn-volver">
+                🔙 Volver al Admin
+            </a>
+        </div>
+        
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-btn active" onclick="mostrarTab('puestos')">
+                    🏢 Puestos de Trabajo
+                </button>
+                <button class="tab-btn" onclick="mostrarTab('maquinas')">
+                    ⚙️ Máquinas
+                </button>
+                <button class="tab-btn" onclick="mostrarTab('asignaciones')">
+                    🔗 Asignaciones
+                </button>
+            </div>
+            
+            <!-- Tab: Puestos -->
+            <div id="tab-puestos" class="tab-content active">
+                <div class="tab-header">
+                    <div class="tab-info">
+                        <h3>🏢 Gestión de Puestos de Trabajo</h3>
+                        <p>Crea y administra los puestos de trabajo de tu planta de producción</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="mostrarModalPuesto()">
+                        ➕ Nuevo Puesto
+                    </button>
+                </div>
+                <div id="lista-puestos">
+                    <div class="loading">🔄 Cargando puestos...</div>
+                </div>
+            </div>
+            
+            <!-- Tab: Máquinas -->
+            <div id="tab-maquinas" class="tab-content">
+                <div class="tab-header">
+                    <div class="tab-info">
+                        <h3>⚙️ Gestión de Máquinas</h3>
+                        <p>Administra las máquinas de producción y asígnalas a puestos de trabajo</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="mostrarModalMaquina()">
+                        ➕ Nueva Máquina
+                    </button>
+                </div>
+                <div id="lista-maquinas">
+                    <div class="loading">🔄 Cargando máquinas...</div>
+                </div>
+            </div>
+            
+            <!-- Tab: Asignaciones -->
+            <div id="tab-asignaciones" class="tab-content">
+                <div class="tab-header">
+                    <div class="tab-info">
+                        <h3>🔗 Asignación de Terminales</h3>
+                        <p>Asigna terminales específicos a cada máquina de producción</p>
+                    </div>
+                    <div class="asignaciones-stats" id="asignaciones-stats">
+                        <span class="stat-badge" id="total-terminales">0 terminales</span>
+                        <span class="stat-badge alert" id="sin-asignar">0 sin asignar</span>
+                    </div>
+                </div>
+                
+                <!-- Filtros -->
+                <div class="filtros-asignacion">
+                    <div class="filtro-grupo">
+                        <label>Mostrar:</label>
+                        <select id="filtro-estado" onchange="aplicarFiltros()">
+                            <option value="todos">Todos los terminales</option>
+                            <option value="sin-asignar">Solo sin asignar</option>
+                            <option value="asignados">Solo asignados</option>
+                        </select>
+                    </div>
+                    <div class="filtro-grupo">
+                        <label>Buscar terminal:</label>
+                        <input type="text" id="buscar-terminal" placeholder="Ej: T001" onkeyup="aplicarFiltros()">
+                    </div>
+                </div>
+                
+                <div id="lista-asignaciones">
+                    <div class="loading">🔄 Cargando terminales...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Nuevo/Editar Puesto -->
+    <div id="modal-puesto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Puesto</h3>
+                <button onclick="cerrarModal('modal-puesto')" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="puesto-nombre">Nombre del Puesto *</label>
+                    <input type="text" id="puesto-nombre" placeholder="Ej: Línea de Montaje A">
+                </div>
+                <div class="form-group">
+                    <label for="puesto-descripcion">Descripción</label>
+                    <textarea id="puesto-descripcion" placeholder="Descripción detallada del puesto de trabajo" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="cerrarModal('modal-puesto')" class="btn btn-secondary">Cancelar</button>
+                <button onclick="guardarPuesto()" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Nueva/Editar Máquina -->
+    <div id="modal-maquina" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nueva Máquina</h3>
+                <button onclick="cerrarModal('modal-maquina')" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="maquina-puesto">Puesto de Trabajo *</label>
+                    <select id="maquina-puesto">
+                        <option value="">Selecciona un puesto...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="maquina-nombre">Nombre de la Máquina *</label>
+                    <input type="text" id="maquina-nombre" placeholder="Ej: Engastadora Automática #1">
+                </div>
+                <div class="form-group">
+                    <label for="maquina-modelo">Modelo</label>
+                    <input type="text" id="maquina-modelo" placeholder="Ej: EA-2000X">
+                </div>
+                <div class="form-group">
+                    <label for="maquina-descripcion">Descripción</label>
+                    <textarea id="maquina-descripcion" placeholder="Características y funciones de la máquina" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="cerrarModal('modal-maquina')" class="btn btn-secondary">Cancelar</button>
+                <button onclick="guardarMaquina()" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/gestion-puestos.js') }}"></script>
+</body>
+</html>

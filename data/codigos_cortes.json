@@ -1,0 +1,16 @@
+{
+  "cortes": [
+    {
+      "codigo_barras": "ITALIA",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS.xlsx",
+      "descripcion": "ITALIA APANTALLADOS",
+      "proyecto": ""
+    },
+    {
+      "codigo_barras": "PC_CAB_BADEN",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "descripcion": "PC CABINA BADEN",
+      "proyecto": ""
+    }
+  ]
+}

@@ -1,0 +1,678 @@
+/**
+ * Gestión de Proyectos y Carros
+ */
+
+let proyectoActualAsignar = null;
+let carrosActuales = [];
+
+// Cargar datos al iniciar
+document.addEventListener('DOMContentLoaded', () => {
+    cargarCarros();
+    cargarArchivosExcel();
+});
+
+/**
+ * Cargar estado de los carros
+ */
+async function cargarCarros() {
+    try {
+        const response = await fetch('/api/carros');
+        const data = await response.json();
+        
+        if (data.success) {
+            carrosActuales = data.carros;
+            mostrarCarros(data.carros);
+        }
+    } catch (error) {
+        console.error('Error al cargar carros:', error);
+        mostrarMensaje('Error al cargar carros', 'error');
+    }
+}
+
+/**
+ * Mostrar carros en la interfaz
+ */
+function mostrarCarros(carros) {
+    const container = document.getElementById('carrosGrid');
+    
+    container.innerHTML = carros.map(carro => `
+        <div class="carro-card ${carro.ocupado ? 'ocupado' : 'libre'}" onclick="${!carro.ocupado ? `abrirModalAsignarProyectoCarro(${carro.numero})` : ''}" style="${!carro.ocupado ? 'cursor: pointer;' : ''}">
+            <div class="carro-numero">🚛 ${carro.numero}</div>
+            <div class="carro-estado ${carro.ocupado ? 'ocupado' : 'libre'}">
+                ${carro.ocupado ? 'OCUPADO' : 'LIBRE'}
+            </div>
+            
+            ${carro.ocupado ? `
+                <div class="carro-proyecto">
+                    <strong>${carro.proyecto_nombre}</strong>
+                </div>
+                
+                <button class="btn-liberar" onclick="event.stopPropagation(); liberarCarro(${carro.numero})">
+                    <i class="fas fa-times"></i> Liberar
+                </button>
+            ` : `
+                <div class="carro-proyecto" style="color: #adb5bd;">
+                    <em>Click para asignar proyecto</em>
+                </div>
+            `}
+        </div>
+    `).join('');
+}
+
+/**
+ * Cargar archivos Excel desde el admin
+ */
+async function cargarArchivosExcel() {
+    try {
+        const response = await fetch('/api/list_files');
+        const data = await response.json();
+        
+        if (data.success) {
+            actualizarSelectArchivosExcel(data.files);
+        }
+    } catch (error) {
+        console.error('Error al cargar archivos:', error);
+        mostrarMensaje('Error al cargar archivos Excel', 'error');
+    }
+}
+
+
+
+/**
+ * Abrir modal para asignar proyecto directamente a un carro libre
+ */
+function abrirModalAsignarProyectoCarro(numeroCarro) {
+    const modal = document.getElementById('modalAsignarProyectoCarro');
+    if (!modal) return;
+    
+    window.carroSeleccionado = numeroCarro;
+    document.getElementById('numeroCarroAsignar').textContent = numeroCarro;
+    document.getElementById('nombreProyectoCarro').value = '';
+    
+    modal.classList.add('active');
+    document.getElementById('nombreProyectoCarro').focus();
+}
+
+/**
+ * Confirmar asignación directa de proyecto a carro
+ */
+async function confirmarAsignacionDirecta() {
+    const nombreProyecto = document.getElementById('nombreProyectoCarro').value.trim();
+    const archivoExcel = document.getElementById('archivoExcelCarro').value;
+    
+    if (!nombreProyecto || !archivoExcel) {
+        mostrarMensaje('Completa todos los campos', 'error');
+        return;
+    }
+    
+    try {
+        // Primero crear el proyecto
+        const responseProyecto = await fetch('/api/proyectos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                nombre: nombreProyecto,
+                archivo: archivoExcel
+            })
+        });
+        
+        const dataProyecto = await responseProyecto.json();
+        
+        if (!dataProyecto.success) {
+            mostrarMensaje(dataProyecto.message || 'Error al crear proyecto', 'error');
+            return;
+        }
+        
+        // Luego asignar al carro
+        const responseAsignar = await fetch('/api/carros/asignar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                proyecto_id: dataProyecto.proyecto.id,
+                carro: window.carroSeleccionado
+            })
+        });
+        
+        const dataAsignar = await responseAsignar.json();
+        
+        if (dataAsignar.success) {
+            mostrarMensaje('Proyecto asignado al carro correctamente', 'success');
+            cerrarModal('modalAsignarProyectoCarro');
+            cargarCarros();
+        } else {
+            mostrarMensaje(dataAsignar.message || 'Error al asignar', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al asignar proyecto', 'error');
+    }
+}
+
+/**
+ * Liberar un carro
+ */
+async function liberarCarro(numeroCarro) {
+    if (!confirm(`¿Liberar el carro ${numeroCarro}?`)) return;
+    
+    try {
+        const response = await fetch(`/api/carros/${numeroCarro}/liberar`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('Carro liberado', 'success');
+            cargarCarros();
+        } else {
+            mostrarMensaje(data.message || 'Error al liberar carro', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al liberar carro', 'error');
+    }
+}
+
+
+
+/**
+ * Abrir modal para generar bono
+ */
+async function abrirModalGenerarBono() {
+    // Verificar que hay carros ocupados
+    const carrosOcupados = carrosActuales.filter(c => c.ocupado);
+    
+    if (carrosOcupados.length === 0) {
+        mostrarMensaje('No hay carros con proyectos asignados', 'error');
+        return;
+    }
+    
+    if (carrosOcupados.length > 6) {
+        mostrarMensaje('No se pueden incluir más de 6 carros en un bono', 'error');
+        return;
+    }
+    
+    // Obtener nombre sugerido
+    try {
+        const response = await fetch('/api/bonos/nombre-sugerido');
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('nombreBono').value = data.nombre;
+        }
+    } catch (error) {
+        console.error('Error al obtener nombre sugerido:', error);
+    }
+    
+    // Mostrar resumen de carros
+    const listaCarros = document.getElementById('listaCarrosBono');
+    listaCarros.innerHTML = carrosOcupados.map(carro => `
+        <div style="padding: 8px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #0d6efd;">
+            <strong>Carro ${carro.numero}:</strong> ${carro.proyecto_nombre}
+        </div>
+    `).join('');
+    
+    const modal = document.getElementById('modalGenerarBono');
+    if (modal) {
+        modal.classList.add('active');
+        document.getElementById('nombreBono').focus();
+    }
+}
+
+/**
+ * Confirmar generación de bono
+ */
+async function confirmarGenerarBono() {
+    const nombreBono = document.getElementById('nombreBono').value.trim();
+    
+    if (!nombreBono) {
+        mostrarMensaje('Ingresa un nombre para el bono', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/bonos/generar', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nombre: nombreBono })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('Bono generado correctamente', 'success');
+            cerrarModal('modalGenerarBono');
+            mostrarModalBono(data.bono);
+        } else {
+            mostrarMensaje(data.message || 'Error al generar bono', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al generar bono', 'error');
+    }
+}
+
+/**
+ * Mostrar modal con el bono generado
+ */
+function mostrarModalBono(bono) {
+    const modal = document.getElementById('modalBono');
+    if (!modal) return;
+    
+    document.getElementById('bonoNombre').textContent = bono.nombre;
+    document.getElementById('bonoNumCortes').textContent = bono.num_cortes;
+    
+    // Mostrar lista de carros
+    const listaCarros = document.getElementById('bonoCarrosLista');
+    listaCarros.innerHTML = bono.carros.map(carro => `
+        <div style="padding: 10px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #28a745;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong style="color: #0d6efd;">Carro ${carro.carro}</strong>
+                    <div style="color: #6c757d; font-size: 0.9em; margin-top: 3px;">${carro.proyecto_nombre}</div>
+                </div>
+                <div style="text-align: right; font-size: 0.85em; color: #6c757d;">
+                    ${carro.archivo_excel}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    modal.classList.add('active');
+}
+
+/**
+ * Copiar nombre de bono al portapapeles
+ */
+function copiarBono() {
+    const nombre = document.getElementById('bonoNombre').textContent;
+    
+    navigator.clipboard.writeText(nombre).then(() => {
+        mostrarMensaje('Nombre del bono copiado', 'success');
+    }).catch(err => {
+        console.error('Error al copiar:', err);
+        mostrarMensaje('Error al copiar nombre', 'error');
+    });
+}
+
+/**
+ * Actualizar select de archivos Excel
+ */
+function actualizarSelectArchivosExcel(archivos) {
+    const select = document.getElementById('archivoExcelCarro');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">-- Seleccionar Archivo --</option>';
+    
+    archivos.forEach(archivo => {
+        const option = document.createElement('option');
+        option.value = archivo.nombre;
+        option.textContent = `${archivo.nombre} (${archivo.tamano})`;
+        select.appendChild(option);
+    });
+}
+
+/**
+ * Cerrar modal
+ */
+function cerrarModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+/**
+ * Mostrar mensajes
+ */
+function mostrarMensaje(mensaje, tipo) {
+    // Crear elemento de mensaje
+    const div = document.createElement('div');
+    div.className = `mensaje-toast mensaje-${tipo}`;
+    div.textContent = mensaje;
+    
+    // Estilos inline
+    div.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        background: ${tipo === 'success' ? '#28a745' : '#dc3545'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    document.body.appendChild(div);
+    
+    // Eliminar después de 3 segundos
+    setTimeout(() => {
+        div.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => div.remove(), 300);
+    }, 3000);
+}
+
+// Estilos para animaciones
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// ========================================
+// Gestión de Bonos Existentes
+// ========================================
+
+function mostrarGestionBonos() {
+    document.querySelector('.seccion-carros').style.display = 'none';
+    document.getElementById('seccionGestionBonos').style.display = 'block';
+    cargarListaBonos();
+    cargarBonosParaReporte();
+}
+
+function ocultarGestionBonos() {
+    document.querySelector('.seccion-carros').style.display = 'block';
+    document.getElementById('seccionGestionBonos').style.display = 'none';
+}
+
+function cambiarTabGestion(tab) {
+    document.querySelectorAll('.tab-btn-gestion').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-gestion-content').forEach(content => content.style.display = 'none');
+    
+    event.target.classList.add('active');
+    
+    if (tab === 'lista') {
+        document.getElementById('tab-lista-bonos').style.display = 'block';
+    } else if (tab === 'reportes') {
+        document.getElementById('tab-reportes-bonos').style.display = 'block';
+    }
+}
+
+async function cargarListaBonos() {
+    try {
+        const response = await fetch('/api/bonos');
+        const data = await response.json();
+        
+        const contenedor = document.getElementById('contenedorListaBonos');
+        
+        if (data.success && data.bonos.length > 0) {
+            let html = '<table class="tabla-bonos"><thead><tr><th>Nombre</th><th>Cortes</th><th>Carros</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>';
+            
+            data.bonos.forEach(bono => {
+                html += `
+                    <tr>
+                        <td><strong>${bono.nombre}</strong></td>
+                        <td>${bono.cortes_total}</td>
+                        <td>${bono.carros_usados || 6}</td>
+                        <td><span class="badge badge-${bono.estado || 'activo'}">${bono.estado || 'activo'}</span></td>
+                        <td>
+                            <button class="btn-small btn-primary" onclick="abrirModalEditarBono('${bono.nombre}')" style="margin-right: 5px;">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="btn-small btn-danger" onclick="eliminarBonoConfirmar('${bono.nombre}')">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            contenedor.innerHTML = html;
+        } else {
+            contenedor.innerHTML = '<p style="text-align: center; color: #6c757d;">No hay bonos registrados</p>';
+        }
+    } catch (error) {
+        console.error('Error al cargar bonos:', error);
+    }
+}
+
+function eliminarBonoConfirmar(nombreBono) {
+    if (!confirm(`¿Estás seguro de eliminar el bono "${nombreBono}"? Esta acción no se puede deshacer.`)) {
+        return;
+    }
+    
+    eliminarBono(nombreBono);
+}
+
+async function eliminarBono(nombreBono) {
+    try {
+        const response = await fetch(`/api/bonos/${nombreBono}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('Bono eliminado correctamente', 'success');
+            cargarListaBonos();
+            cargarBonosParaReporte();
+        } else {
+            mostrarMensaje(`Error: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        mostrarMensaje('Error al eliminar el bono', 'error');
+        console.error(error);
+    }
+}
+
+async function cargarBonosParaReporte() {
+    try {
+        const response = await fetch('/api/bonos');
+        const data = await response.json();
+        
+        const select = document.getElementById('selectBonoReporte');
+        select.innerHTML = '<option value="">-- Seleccionar bono --</option>';
+        
+        if (data.success) {
+            data.bonos.forEach(bono => {
+                select.innerHTML += `<option value="${bono.nombre}">${bono.nombre} (${bono.cortes_total} cortes)</option>`;
+            });
+        }
+    } catch (error) {
+        console.error('Error al cargar bonos:', error);
+    }
+}
+
+async function generarReporteBono() {
+    const nombreBono = document.getElementById('selectBonoReporte').value;
+    
+    if (!nombreBono) {
+        alert('Por favor selecciona un bono');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/bonos/${nombreBono}/reporte`);
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarReporte(data.reporte, nombreBono);
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    } catch (error) {
+        alert('Error al generar el reporte');
+        console.error(error);
+    }
+}
+
+function mostrarReporte(reporte, nombreBono) {
+    const contenedor = document.getElementById('contenedorReporte');
+    
+    let html = `
+        <div class="reporte-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0;">
+                <h3>📊 Reporte: ${nombreBono}</h3>
+                <button onclick="descargarReporteCSV('${nombreBono}')" class="btn-secondary">
+                    <i class="fas fa-download"></i> Descargar CSV
+                </button>
+            </div>
+            
+            <div class="reporte-stats">
+                <div class="stat-box">
+                    <div class="stat-value">${reporte.total_terminales}</div>
+                    <div class="stat-label">Terminales Trabajados</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${reporte.total_carros_completados}</div>
+                    <div class="stat-label">Carros Completados</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${reporte.progreso_general.toFixed(1)}%</div>
+                    <div class="stat-label">Progreso General</div>
+                </div>
+            </div>
+            
+            <h4 style="margin-top: 30px;">Detalle por Terminal</h4>
+            <table class="tabla-reporte">
+                <thead>
+                    <tr>
+                        <th>Terminal</th>
+                        <th>Carros Completados</th>
+                        <th>Fecha/Hora</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    if (reporte.detalle && reporte.detalle.length > 0) {
+        reporte.detalle.forEach(item => {
+            html += `
+                <tr>
+                    <td><strong>${item.terminal}</strong></td>
+                    <td>${item.carros_completados.length}</td>
+                    <td>${item.fecha_hora || 'N/A'}</td>
+                    <td><span class="badge badge-${item.estado}">${item.estado}</span></td>
+                </tr>
+            `;
+        });
+    } else {
+        html += '<tr><td colspan="4" style="text-align: center;">No hay datos disponibles</td></tr>';
+    }
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    contenedor.innerHTML = html;
+}
+
+async function descargarReporteCSV(nombreBono) {
+    try {
+        const response = await fetch(`/api/bonos/${nombreBono}/reporte`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            alert('Error al generar el reporte');
+            return;
+        }
+        
+        let csv = 'Terminal,Carros Completados,Fecha/Hora,Estado\n';
+        
+        if (data.reporte.detalle) {
+            data.reporte.detalle.forEach(item => {
+                csv += `"${item.terminal}","${item.carros_completados.length}","${item.fecha_hora || 'N/A'}","${item.estado}"\n`;
+            });
+        }
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `reporte_${nombreBono}_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+    } catch (error) {
+        alert('Error al descargar el reporte');
+        console.error(error);
+    }
+}
+
+// ========================================
+// Edición de Bonos
+// ========================================
+
+async function abrirModalEditarBono(nombreBono) {
+    try {
+        const response = await fetch(`/api/bonos/${nombreBono}`);
+        const data = await response.json();
+        
+        if (data.success && data.bono) {
+            document.getElementById('nombreBonoOriginal').value = nombreBono;
+            document.getElementById('nombreBonoEditar').value = nombreBono;
+            document.getElementById('estadoBonoEditar').value = data.bono.estado || 'activo';
+            
+            abrirModal('modalEditarBono');
+        } else {
+            alert('Error al cargar los datos del bono');
+        }
+    } catch (error) {
+        alert('Error al cargar el bono');
+        console.error(error);
+    }
+}
+
+async function guardarEdicionBono() {
+    const nombreOriginal = document.getElementById('nombreBonoOriginal').value;
+    const nuevoNombre = document.getElementById('nombreBonoEditar').value.trim();
+    const estado = document.getElementById('estadoBonoEditar').value;
+    
+    if (!nuevoNombre) {
+        alert('El nombre del bono no puede estar vacío');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/bonos/${nombreOriginal}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nombre: nuevoNombre,
+                estado: estado
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('Bono actualizado correctamente', 'success');
+            cerrarModal('modalEditarBono');
+            cargarListaBonos();
+            cargarBonosParaReporte();
+        } else {
+            mostrarMensaje(`Error: ${data.error}`, 'error');
+        }
+    } catch (error) {
+        mostrarMensaje('Error al actualizar el bono', 'error');
+        console.error(error);
+    }
+}

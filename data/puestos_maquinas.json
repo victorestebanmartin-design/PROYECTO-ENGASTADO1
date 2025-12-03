@@ -1,0 +1,162 @@
+{
+  "puestos": [
+    {
+      "id": "puesto_001",
+      "nombre": "TERMINALES AMP",
+      "descripcion": "Terminales AMP FORRADOS",
+      "activo": true,
+      "maquinas": [
+        {
+          "id": "maq_001",
+          "nombre": "AMP ROJA",
+          "modelo": "KOMAX Alpha 355",
+          "terminales_asignados": [
+            "640204",
+            "640205",
+            "640206",
+            "640209",
+            "640211",
+            "640243"
+          ],
+          "activo": true,
+          "descripcion": ""
+        },
+        {
+          "id": "maq_002",
+          "nombre": "AMP AZUL",
+          "modelo": "KOMAX Alpha 455",
+          "terminales_asignados": [
+            "640210",
+            "640212",
+            "640230",
+            "640243A",
+            "641H002"
+          ],
+          "activo": true,
+          "descripcion": ""
+        },
+        {
+          "id": "maquina_7",
+          "nombre": "AMP AMARILLOS",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "640245",
+            "640260",
+            "640261",
+            "640304D"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "puesto_002",
+      "nombre": "PINES RACK",
+      "descripcion": "Puesto secundario línea de producción 2",
+      "activo": true,
+      "maquinas": [
+        {
+          "id": "maq_003",
+          "nombre": "Harting",
+          "modelo": "Pines 1mm",
+          "terminales_asignados": [
+            "641M10100"
+          ],
+          "activo": true,
+          "descripcion": ""
+        },
+        {
+          "id": "maquina_6",
+          "nombre": "Harting",
+          "modelo": "Pines 0,5mm",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M155",
+            "H0337649"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "puesto_3",
+      "nombre": "PUNTERAS",
+      "descripcion": "",
+      "activo": true,
+      "maquinas": [
+        {
+          "id": "maquina_4",
+          "nombre": "PUNTERAS ROJAS",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641H10055",
+            "641H10057",
+            "641H10058"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "puesto_4",
+      "nombre": "MANUAL",
+      "descripcion": "",
+      "activo": true,
+      "maquinas": [
+        {
+          "id": "maquina_5",
+          "nombre": "DMC AZUL",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M10292",
+            "641H039",
+            "641H056",
+            "641H10056",
+            "641M026",
+            "641M027",
+            "641H057",
+            "641M10293",
+            "641M10295"
+          ]
+        },
+        {
+          "id": "maquina_8",
+          "nombre": "TAMBOR VERDE",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "640305",
+            "641M10045",
+            "641M10091",
+            "641M10196",
+            "641M600",
+            "641M082",
+            "641M10078",
+            "641M613",
+            "641M644",
+            "641M936"
+          ]
+        },
+        {
+          "id": "maquina_9",
+          "nombre": "TAMBOR ROJO",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M239",
+            "641M532",
+            "641M577",
+            "641M645",
+            "641M937"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración - Sistema de Engastado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>⚙️ Administración del Sistema</h1>
+            <a href="{{ url_for('main.index') }}" class="btn-admin">🔙 Volver a Operación</a>
+        </header>
+
+        <!-- Sección: Subir Archivo Excel -->
+        <div class="card">
+            <h2>📤 Subir Archivo Excel</h2>
+            <p class="instruccion">Sube un nuevo archivo Excel con datos de cableado</p>
+            
+            <form id="upload-form" enctype="multipart/form-data">
+                <div class="input-group">
+                    <label for="file-upload">Seleccionar Archivo (.xlsx, .xls):</label>
+                    <input type="file" id="file-upload" name="file" accept=".xlsx,.xls" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">📤 Subir Archivo</button>
+            </form>
+            
+            <div id="upload-mensaje" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Asociar Código de Barras con Archivo -->
+        <div class="card">
+            <h2>🔗 Asociar Código de Barras</h2>
+            <p class="instruccion">Vincula un código de barras con un archivo Excel subido</p>
+            
+            <form id="asociar-form">
+                <div class="input-group">
+                    <label for="codigo-barras">Código de Barras:</label>
+                    <input type="text" id="codigo-barras" placeholder="Ej: CORADIA_IT_001" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="select-archivo">Archivo Excel:</label>
+                    <select id="select-archivo" required>
+                        <option value="">-- Seleccionar archivo --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="descripcion">Descripción:</label>
+                    <input type="text" id="descripcion" placeholder="Ej: Listado Cableado Coradia Italia" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="proyecto">Proyecto (opcional):</label>
+                    <input type="text" id="proyecto" placeholder="Ej: Coradia Italia">
+                </div>
+
+                <button type="submit" class="btn-primary">✅ Asociar</button>
+            </form>
+            
+            <div id="asociar-mensaje" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Cortes Registrados -->
+        <div class="card">
+            <h2>📋 Cortes Registrados</h2>
+            <p class="instruccion">Lista de códigos de barras y archivos asociados</p>
+            
+            <button onclick="cargarCortes()" class="btn-secondary">🔄 Actualizar Lista</button>
+            
+            <div id="lista-cortes" class="tabla-container">
+                <p class="text-muted">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Sección: Archivos Disponibles -->
+        <div class="card">
+            <h2>📁 Archivos Excel Disponibles</h2>
+            <p class="instruccion">Archivos Excel subidos al sistema</p>
+            
+            <button onclick="cargarArchivos()" class="btn-secondary">🔄 Actualizar Lista</button>
+            
+            <div id="lista-archivos" class="tabla-container">
+                <p class="text-muted">Cargando...</p>
+            </div>
+        </div>
+
+        <!-- Sección: PELIGRO - Resetear Sistema -->
+        <div class="card" style="border: 3px solid #ef4444;">
+            <h2 style="color: #ef4444;">⚠️ ZONA DE PELIGRO</h2>
+            <p class="instruccion" style="color: #dc2626; font-weight: 600;">Esta acción eliminará TODOS los archivos Excel y TODOS los códigos de barras registrados. No se puede deshacer.</p>
+            
+            <button onclick="resetearSistema()" class="btn-danger" style="background-color: #dc2626; color: white; font-weight: 700;">
+                🗑️ RESETEAR TODO EL SISTEMA
+            </button>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+</body>
+</html>

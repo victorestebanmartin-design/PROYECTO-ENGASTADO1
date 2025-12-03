@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inicio - Sistema de Engastado</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=landing2">
+</head>
+<body>
+  <div class="container landing-container">
+    <header class="header landing-header">
+      <div class="landing-logo">
+        <div class="logo-icon">🔧</div>
+        <div>
+          <h1>Sistema de Engastado</h1>
+          <div class="landing-version">Versión 2.0</div>
+        </div>
+      </div>
+      <p class="landing-subtitle">Selecciona el modo de operación que deseas utilizar</p>
+    </header>
+
+    <div class="landing-stats">
+      <div class="stat-item">
+        <div class="stat-icon">📊</div>
+        <div class="stat-info">
+          <div class="stat-label">Terminales</div>
+          <div class="stat-value">32 activos</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-info">
+          <div class="stat-label">Estado</div>
+          <div class="stat-value">Sistema listo</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">🎯</div>
+        <div class="stat-info">
+          <div class="stat-label">Modo</div>
+          <div class="stat-value">Producción</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card landing-selector">
+      <h2 class="landing-title">Elige Versión</h2>
+      <div class="version-grid">
+        <div class="version-card version-v1">
+          <div class="version-icon">🔍</div>
+          <h3>Versión Básica (V1)</h3>
+          <p>Consulta y agrupado rápido de terminales desde Excel. Ideal para ver cantidades y códigos sin flujo guiado.</p>
+          <div class="version-features">
+            <span class="feature-tag">Búsqueda rápida</span>
+            <span class="feature-tag">Agrupado automático</span>
+          </div>
+          <a href="{{ url_for('main.index') }}" class="btn-primary btn-version">Entrar a V1</a>
+        </div>
+        <div class="version-card version-v2 recommended">
+          <div class="version-badge">Recomendado</div>
+          <div class="version-icon">⚡</div>
+          <h3>Versión Interactiva (V2)</h3>
+          <p>Flujo paso a paso con temporizador, progreso y selección secuencial de cajas/paquetes para el operario.</p>
+          <div class="version-features">
+            <span class="feature-tag">Guía paso a paso</span>
+            <span class="feature-tag">Temporizador</span>
+            <span class="feature-tag">Progreso visual</span>
+          </div>
+          <a href="{{ url_for('main.index_v2') }}" class="btn-primary btn-version btn-version-v2">Entrar a V2</a>
+        </div>
+        <div class="version-card version-v3">
+          <div class="version-badge">Nuevo</div>
+          <div class="version-icon">🚀</div>
+          <h3>Versión Avanzada (V3)</h3>
+          <p>Funcionalidades avanzadas y nuevas características. En desarrollo para casos de uso especializados.</p>
+          <div class="version-features">
+            <span class="feature-tag">Modo avanzado</span>
+            <span class="feature-tag">En desarrollo</span>
+          </div>
+          <a href="{{ url_for('main.index_v3') }}" class="btn-primary btn-version btn-version-v3">Entrar a V3</a>
+        </div>
+        <div class="version-card version-admin">
+          <div class="version-icon">⚙️</div>
+          <h3>Administración</h3>
+          <p>Sube archivos Excel, asocia códigos de barras y gestiona el estado (activo/desactivado) de los terminales.</p>
+          <div class="version-features">
+            <span class="feature-tag">Gestión Excel</span>
+            <span class="feature-tag">Control terminales</span>
+          </div>
+          <a href="{{ url_for('main.admin') }}" class="btn-primary btn-version btn-version-admin">Ir a Admin</a>
+        </div>
+        <div class="version-card version-proyectos">
+          <div class="version-icon">🚛</div>
+          <h3>Gestión de Bonos</h3>
+          <p>Crea bonos visuales, gestiona proyectos en carros, elimina bonos antiguos y genera reportes de producción detallados.</p>
+          <div class="version-features">
+            <span class="feature-tag">Crear Bonos</span>
+            <span class="feature-tag">Eliminar</span>
+            <span class="feature-tag">Reportes</span>
+          </div>
+          <a href="{{ url_for('main.gestion_proyectos') }}" class="btn-primary btn-version btn-version-proyectos">Gestionar Bonos</a>
+        </div>
+        <div class="version-card version-visualizacion">
+          <div class="version-icon">📊</div>
+          <h3>Visualización</h3>
+          <p>Dashboard en tiempo real del progreso de bonos. Ideal para pantallas externas o monitoreo remoto.</p>
+          <div class="version-features">
+            <span class="feature-tag">Tiempo real</span>
+            <span class="feature-tag">Multi-pantalla</span>
+            <span class="feature-tag">Dashboard</span>
+          </div>
+          <a href="{{ url_for('main.visualizacion') }}" class="btn-primary btn-version btn-version-visualizacion">Ver Dashboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card landing-summary">
+      <h2 class="landing-summary-title">Resumen rápido</h2>
+      <ul class="landing-list">
+        <li>V1: Visualización y agrupado de terminales (consulta ágil).</li>
+        <li>V2: Asistencia operativa con control de avance y temporizador.</li>
+        <li>V3: Funcionalidades avanzadas y casos de uso especializados.</li>
+        <li>Admin: Gestión de archivos y activación/desactivación de terminales.</li>
+      </ul>
+      <p class="landing-footnote">Puedes volver a esta pantalla siempre accediendo a la raíz: <code>/</code></p>
+    </div>
+  </div>
+</body>
+</html>

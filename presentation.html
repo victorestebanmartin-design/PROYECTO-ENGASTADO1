@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Presentación - Sistema de Engastado</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; color:#1e293b; margin: 0; padding: 0; }
+    .slide { width: 210mm; height: 297mm; padding: 28mm 20mm; box-sizing: border-box; page-break-after: always; }
+    h1 { color: #2563eb; font-size: 28px; margin-bottom: 8px; }
+    h2 { color:#1e293b; font-size: 20px; margin-top: 0; }
+    p { font-size: 14px; line-height: 1.45; }
+    ul { font-size: 14px; margin-left: 18px; }
+    .center { text-align: center; }
+    .badge { display:inline-block; padding:8px 12px; background:#e6eefc; color:#1e40af; border-radius:6px; font-weight:700; }
+    .screenshot { width:100%; border:1px solid #e2e8f0; border-radius:6px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    footer { position: absolute; bottom: 18mm; left: 20mm; right: 20mm; font-size:12px; color:#64748b; }
+  </style>
+</head>
+<body>
+
+<section class="slide">
+  <h1 class="center">Sistema de Engastado Automático</h1>
+  <p class="center">Guía rápida y demostración para operarios y administradores</p>
+  <h2>Objetivo</h2>
+  <p>Guiar y controlar el proceso de engastado de terminales, reduciendo errores y organizando el trabajo por paquetes.</p>
+  <ul>
+    <li>Modo interactivo para operarios (V2)</li>
+    <li>Panel de administración para gestionar terminales y Excel</li>
+  </ul>
+  <footer>Presentación generada desde el proyecto local</footer>
+</section>
+
+<section class="slide">
+  <h2>Resumen corto</h2>
+  <p>Una aplicación que lee un archivo Excel con terminales, muestra tarjetas por terminal y guía paso a paso la preparación de paquetes.</p>
+  <h2>Para quién</h2>
+  <ul>
+    <li>Operarios de taller</li>
+    <li>Responsables de producción</li>
+    <li>Administradores</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Demo - Flujo de uso (pasos)</h2>
+  <ol>
+    <li>Abrir `http://localhost:5000/v2`</li>
+    <li>Seleccionar la tarjeta del terminal</li>
+    <li>Seguir instrucciones y temporizador</li>
+    <li>Presionar <strong>Enter</strong> para avanzar o esperar el temporizador</li>
+    <li>Reanudar o cambiar terminales según sea necesario</li>
+  </ol>
+</section>
+
+<section class="slide">
+  <h2>Pantalla de Administración</h2>
+  <p>Subida y asociación de archivos Excel, badges con info (archivos procesados / con error / total) y grid de terminales con botones para activar/desactivar.</p>
+  <p class="center"><em>Inserta aquí capturas de `/admin` si quieres mostrar ejemplos visuales.</em></p>
+</section>
+
+<section class="slide">
+  <h2>Cómo arrancar (Windows)</h2>
+  <pre style="background:#f8fafc;padding:12px;border-radius:6px;border:1px solid #e2e8f0;">powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python run.py
+</pre>
+  <p>Abrir en el navegador: <span class="badge">/</span> V2: <code>http://localhost:5000/v2</code></p>
+</section>
+
+<section class="slide">
+  <h2>Archivos importantes</h2>
+  <ul>
+    <li><code>run.py</code> — iniciar servidor</li>
+    <li><code>app/excel_manager.py</code> — leer Excel</li>
+    <li><code>static/js/main-v2.js</code> — flujo operario</li>
+    <li><code>static/js/admin.js</code> — panel `/admin`</li>
+    <li><code>static/css/style.css</code> — estilos</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>FAQ rápido</h2>
+  <p><strong>¿Se pierde el progreso?</strong> — Actualmente se guarda en memoria; se puede añadir persistencia en base de datos.</p>
+  <p><strong>¿Excel no aparece?</strong> — Subir desde `/admin` y asociar el código.</p>
+</section>
+
+<section class="slide">
+  <h2>Próximos pasos sugeridos</h2>
+  <ul>
+    <li>Persistencia por usuario/turno</li>
+    <li>Reportes exportables</li>
+    <li>Integración con escáner de códigos</li>
+    <li>Control de usuarios/roles</li>
+  </ul>
+</section>
+
+<section class="slide">
+  <h2>Demostración en vivo</h2>
+  <p>1) Mostrar `/admin` → subir Excel → asociar código.<br>2) Abrir V2 → seleccionar terminal → preparar paquete.</p>
+</section>
+
+<section class="slide">
+  <h2>Contacto y documentación</h2>
+  <p>Revisa `README.md` en la raíz del proyecto para más detalles técnicos.</p>
+  <footer>Fin de la presentación</footer>
+</section>
+
+</body>
+</html>

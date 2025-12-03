@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progreso del Bono - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .dashboard-container {
+            flex: 1;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .dashboard-header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .bono-nombre {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .bono-info {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .bono-stat {
+            text-align: center;
+        }
+        
+        .bono-stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .bono-stat-label {
+            color: #6c757d;
+            font-size: 1em;
+            margin-top: 5px;
+        }
+        
+        .progress-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .progress-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #212529;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .progress-bar-container {
+            background: #e9ecef;
+            border-radius: 15px;
+            height: 60px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .progress-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .progress-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .progress-card-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0d6efd;
+        }
+        
+        .progress-card-label {
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .terminales-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .terminal-card {
+            background: #fff;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .terminal-card.completado {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+        
+        .terminal-card.en-proceso {
+            background: #fff3cd;
+            border-color: #ffc107;
+        }
+        
+        .terminal-nombre {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .terminal-estado {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .no-bono {
+            text-align: center;
+            padding: 100px 20px;
+            color: white;
+        }
+        
+        .no-bono h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        .no-bono p {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div id="dashboard-content">
+            <div class="no-bono">
+                <h1>📊 Dashboard de Progreso</h1>
+                <p>Esperando que se cargue un bono...</p>
+                <p style="font-size: 1em; margin-top: 20px;">Esta pantalla se actualizará automáticamente cuando inicies un bono en el sistema</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let bonoActualMonitor = null;
+        let ultimoProgreso = null;
+        const bonoEspecifico = "{{ bono_nombre if bono_nombre else '' }}";
+
+        // Buscar bono activo y actualizar cada 3 segundos
+        async function actualizarProgreso() {
+            try {
+                // Si hay un bono específico, solo monitorear ese
+                if (bonoEspecifico) {
+                    const response = await fetch(`/api/bonos/${bonoEspecifico}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const bono = data.bono;
+                        
+                        if (bonoActualMonitor !== bono.nombre) {
+                            bonoActualMonitor = bono.nombre;
+                            console.log('📊 Monitoreando bono:', bono.nombre);
+                        }
+                        
+                        // Obtener progreso del bono
+                        const progresoResponse = await fetch(`/api/bonos/${bono.nombre}/progreso`);
+                        const progresoData = await progresoResponse.json();
+                        
+                        if (progresoData.success) {
+                            mostrarProgresoBono(bono, progresoData.progreso || {});
+                        }
+                    } else {
+                        mostrarSinBono();
+                    }
+                    return;
+                }
+                
+                // Si no hay bono específico, buscar el primero activo
+                // Obtener lista de bonos
+                const response = await fetch('/api/bonos');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const bonosActivos = Object.values(data.bonos).filter(b => b.estado === 'activo');
+                    
+                    if (bonosActivos.length > 0) {
+                        const bono = bonosActivos[0]; // Tomar el primero
+                        
+                        if (bonoActualMonitor !== bono.nombre) {
+                            bonoActualMonitor = bono.nombre;
+                            console.log('📊 Monitoreando bono:', bono.nombre);
+                        }
+                        
+                        // Obtener progreso del bono
+                        const progresoResponse = await fetch(`/api/bonos/${bono.nombre}/progreso`);
+                        const progresoData = await progresoResponse.json();
+                        
+                        if (progresoData.success) {
+                            mostrarProgresoBono(bono, progresoData.progreso || {});
+                        }
+                    } else {
+                        mostrarSinBono();
+                    }
+                }
+            } catch (error) {
+                console.error('Error al actualizar progreso:', error);
+            }
+        }
+
+        function mostrarProgresoBono(bono, progreso) {
+            // Calcular estadísticas
+            const totalTerminales = Object.keys(progreso).length;
+            const terminalesCompletados = Object.values(progreso).filter(t => t.estado === 'completado').length;
+            const terminalesEnProceso = Object.values(progreso).filter(t => t.estado === 'en_proceso').length;
+            
+            // Calcular terminales totales (sumando todos los carros)
+            let totalPinesEngastados = 0;
+            let totalPinesPorEngastar = 0;
+            
+            for (const [terminal, info] of Object.entries(progreso)) {
+                const carrosCompletados = info.carros_completados?.length || 0;
+                totalPinesEngastados += carrosCompletados;
+            }
+            
+            // Total de pines = terminales × carros
+            const totalPines = bono.carros.length * (totalTerminales || 1);
+            const porcentajeProgreso = totalPines > 0 ? Math.round((totalPinesEngastados / totalPines) * 100) : 0;
+            
+            const content = document.getElementById('dashboard-content');
+            content.innerHTML = `
+                <div class="dashboard-header">
+                    <div class="bono-nombre">${bono.nombre}</div>
+                    <div class="bono-info">
+                        <div class="bono-stat">
+                            <div class="bono-stat-value">${bono.num_cortes}</div>
+                            <div class="bono-stat-label">Cortes</div>
+                        </div>
+                        <div class="bono-stat">
+                            <div class="bono-stat-value">${bono.carros.length}</div>
+                            <div class="bono-stat-label">Carros</div>
+                        </div>
+                        <div class="bono-stat">
+                            <div class="bono-stat-value">${totalTerminales}</div>
+                            <div class="bono-stat-label">Terminales en trabajo</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <div class="progress-title">🎯 Progreso General</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${porcentajeProgreso}%">
+                            ${porcentajeProgreso}%
+                        </div>
+                    </div>
+                    
+                    <div class="progress-details">
+                        <div class="progress-card">
+                            <div class="progress-card-value">${terminalesCompletados}</div>
+                            <div class="progress-card-label">✅ Terminales Completados</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card-value">${terminalesEnProceso}</div>
+                            <div class="progress-card-label">⏳ En Proceso</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card-value">${totalPinesEngastados}</div>
+                            <div class="progress-card-label">📌 Pines Engastados</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card-value">${totalPines - totalPinesEngastados}</div>
+                            <div class="progress-card-label">📍 Pines Pendientes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                ${totalTerminales > 0 ? `
+                    <div class="progress-section">
+                        <div class="progress-title">🔌 Estado de Terminales</div>
+                        <div class="terminales-grid">
+                            ${Object.entries(progreso).map(([terminal, info]) => {
+                                const estado = info.estado === 'completado' ? 'completado' : 'en-proceso';
+                                const carrosCompletados = info.carros_completados?.length || 0;
+                                const totalCarros = bono.carros.length;
+                                return `
+                                    <div class="terminal-card ${estado}">
+                                        <div class="terminal-nombre">${terminal}</div>
+                                        <div class="terminal-estado">
+                                            ${info.estado === 'completado' ? 
+                                                '✅ Completado' : 
+                                                `⏳ ${carrosCompletados}/${totalCarros} carros`}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function mostrarSinBono() {
+            if (bonoActualMonitor !== null) {
+                bonoActualMonitor = null;
+                const content = document.getElementById('dashboard-content');
+                content.innerHTML = `
+                    <div class="no-bono">
+                        <h1>📊 Dashboard de Progreso</h1>
+                        <p>Esperando que se cargue un bono...</p>
+                        <p style="font-size: 1em; margin-top: 20px;">Esta pantalla se actualizará automáticamente cuando inicies un bono en el sistema</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Actualizar cada 3 segundos
+        actualizarProgreso();
+        setInterval(actualizarProgreso, 3000);
+    </script>
+</body>
+</html>
