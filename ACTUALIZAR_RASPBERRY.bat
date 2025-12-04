@@ -3,6 +3,9 @@ chcp 65001 >nul
 color 0A
 title Actualizar App en Raspberry Pi
 
+REM Configurar ruta de Git
+set GIT="C:\Users\estebanv\Downloads\PortableGit\cmd\git.exe"
+
 echo.
 echo ========================================
 echo   ACTUALIZANDO APP EN RASPBERRY PI
@@ -10,7 +13,7 @@ echo ========================================
 echo.
 
 REM Verificar si hay cambios
-git status --short
+%GIT% status --short
 if errorlevel 1 (
     echo ERROR: No se pudo verificar el estado de Git
     pause
@@ -19,14 +22,14 @@ if errorlevel 1 (
 
 echo.
 echo [1/4] Agregando archivos modificados...
-git add .
+%GIT% add .
 
 echo.
 echo [2/4] Creando commit...
 set /p mensaje="Describe los cambios realizados: "
 if "%mensaje%"=="" set mensaje=Actualización automática
 
-git commit -m "%mensaje%"
+%GIT% commit -m "%mensaje%"
 if errorlevel 1 (
     echo No hay cambios para enviar
     goto ACTUALIZAR_RASPBERRY
@@ -34,7 +37,7 @@ if errorlevel 1 (
 
 echo.
 echo [3/4] Subiendo cambios a GitHub...
-git push origin main
+%GIT% push origin main
 if errorlevel 1 (
     echo ERROR: No se pudo subir a GitHub
     pause
