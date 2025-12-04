@@ -707,3 +707,91 @@ async function toggleTerminal(terminal, estaDesactivado) {
         alert('Error al cambiar estado del terminal');
     }
 }
+
+/**
+ * Comprobar si hay actualizaciones disponibles
+ */
+async function comprobarActualizaciones() {
+    const statusDiv = document.getElementById('update-status');
+    statusDiv.className = 'mensaje info';
+    statusDiv.textContent = '🔍 Comprobando actualizaciones...';
+    statusDiv.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/api/comprobar_actualizaciones');
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.hay_actualizaciones) {
+                statusDiv.className = 'mensaje warning';
+                statusDiv.innerHTML = `
+                    <strong>✨ ¡Actualización disponible!</strong><br>
+                    Versión actual: ${data.commit_local}<br>
+                    Nueva versión: ${data.commit_remoto}<br>
+                    Últimos cambios: ${data.mensaje_ultimo_commit || 'Sin descripción'}
+                `;
+            } else {
+                statusDiv.className = 'mensaje success';
+                statusDiv.innerHTML = `
+                    <strong>✓ Sistema actualizado</strong><br>
+                    Estás usando la última versión (${data.commit_local})
+                `;
+            }
+        } else {
+            statusDiv.className = 'mensaje error';
+            statusDiv.textContent = '❌ Error: ' + data.message;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.className = 'mensaje error';
+        statusDiv.textContent = '❌ Error al comprobar actualizaciones';
+    }
+}
+
+/**
+ * Actualizar el sistema desde GitHub
+ */
+async function actualizarSistema() {
+    const confirmar = confirm('¿Estás seguro de que quieres actualizar el sistema?\n\nLa aplicación se reiniciará automáticamente.');
+    if (!confirmar) return;
+    
+    const statusDiv = document.getElementById('update-status');
+    statusDiv.className = 'mensaje info';
+    statusDiv.textContent = '⬇️ Descargando actualización...';
+    statusDiv.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/api/actualizar_sistema', {
+            method: 'POST'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.actualizado) {
+                statusDiv.className = 'mensaje success';
+                statusDiv.innerHTML = `
+                    <strong>✓ ${data.message}</strong><br>
+                    La página se recargará en 5 segundos...
+                `;
+                
+                // Recargar la página después de 5 segundos
+                setTimeout(() => {
+                    window.location.reload();
+                }, 5000);
+            } else {
+                statusDiv.className = 'mensaje info';
+                statusDiv.textContent = 'ℹ️ ' + data.message;
+            }
+        } else {
+            statusDiv.className = 'mensaje error';
+            statusDiv.innerHTML = `
+                <strong>❌ Error al actualizar</strong><br>
+                ${data.message}
+            `;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.className = 'mensaje error';
+        statusDiv.textContent = '❌ Error al actualizar el sistema';
+    }
+}

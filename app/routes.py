@@ -1342,3 +1342,123 @@ def datos_trabajo_v3():
             'message': f'Error al obtener datos: {str(e)}'
         })
 
+
+@bp.route('/api/comprobar_actualizaciones', methods=['GET'])
+def comprobar_actualizaciones():
+    """Comprobar si hay actualizaciones disponibles en GitHub"""
+    try:
+        import subprocess
+        
+        # Obtener el hash del commit actual
+        result_local = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        commit_local = result_local.stdout.strip()
+        
+        # Obtener el hash del commit remoto
+        subprocess.run(['git', 'fetch', 'origin', 'main'], check=True, capture_output=True)
+        result_remoto = subprocess.run(
+            ['git', 'rev-parse', 'origin/main'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        commit_remoto = result_remoto.stdout.strip()
+        
+        # Verificar si hay diferencias
+        hay_actualizaciones = commit_local != commit_remoto
+        
+        # Obtener información del último commit remoto si hay actualizaciones
+        mensaje_commit = ""
+        if hay_actualizaciones:
+            result_mensaje = subprocess.run(
+                ['git', 'log', 'origin/main', '-1', '--pretty=%B'],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            mensaje_commit = result_mensaje.stdout.strip()
+        
+        return jsonify({
+            'success': True,
+            'hay_actualizaciones': hay_actualizaciones,
+            'commit_local': commit_local[:7],
+            'commit_remoto': commit_remoto[:7],
+            'mensaje_ultimo_commit': mensaje_commit
+        })
+        
+    except subprocess.CalledProcessError as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al comprobar actualizaciones: {str(e)}'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        })
+
+
+@bp.route('/api/actualizar_sistema', methods=['POST'])
+def actualizar_sistema():
+    """Actualizar el sistema desde GitHub y reiniciar el servicio"""
+    try:
+        import subprocess
+        import sys
+        
+        # Hacer git pull
+        result = subprocess.run(
+            ['git', 'pull', 'origin', 'main'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
+        output = result.stdout + result.stderr
+        
+        # Verificar si hubo cambios
+        if 'Already up to date' in output or 'Ya está actualizado' in output:
+            return jsonify({
+                'success': True,
+                'actualizado': False,
+                'message': 'El sistema ya está actualizado',
+                'output': output
+            })
+        
+        # Si hubo cambios, instalar dependencias por si acaso
+        subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'],
+            capture_output=True,
+            check=True
+        )
+        
+        # Reiniciar el servicio (solo en Linux/Raspberry)
+        if sys.platform.startswith('linux'):
+            subprocess.run(
+                ['sudo', 'systemctl', 'restart', 'engastado.service'],
+                check=True
+            )
+            mensaje = 'Sistema actualizado correctamente. El servicio se está reiniciando...'
+        else:
+            mensaje = 'Sistema actualizado correctamente. Reinicia manualmente la aplicación.'
+        
+        return jsonify({
+            'success': True,
+            'actualizado': True,
+            'message': mensaje,
+            'output': output
+        })
+        
+    except subprocess.CalledProcessError as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al actualizar: {e.stderr if e.stderr else str(e)}'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error inesperado: {str(e)}'
+        })
