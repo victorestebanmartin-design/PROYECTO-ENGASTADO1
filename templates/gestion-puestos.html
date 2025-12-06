@@ -68,6 +68,89 @@
             background: #0056b3;
             transform: translateY(-1px);
         }
+        
+        /* Diseño Vertical */
+        .seccion-vertical {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .seccion-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .seccion-header h2 {
+            margin: 0 0 0.25rem 0;
+            color: #212529;
+            font-size: 1.75rem;
+        }
+        
+        .seccion-descripcion {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .seccion-contenido {
+            padding: 1.5rem 2rem;
+        }
+        
+        .asignaciones-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .stat-badge {
+            background: #e7f3ff;
+            color: #0056b3;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        
+        .stat-badge.alert {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .filtros-asignacion {
+            background: #f8f9fa;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .filtro-grupo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .filtro-grupo label {
+            font-weight: 600;
+            color: #495057;
+            margin: 0;
+        }
+        
+        .filtro-grupo select,
+        .filtro-grupo input {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
@@ -90,74 +173,60 @@
             </a>
         </div>
         
-        <!-- Tabs Navigation -->
-        <div class="tabs-container">
-            <div class="tabs-nav">
-                <button class="tab-btn active" onclick="mostrarTab('puestos')">
-                    🏢 Puestos de Trabajo
-                </button>
-                <button class="tab-btn" onclick="mostrarTab('maquinas')">
-                    ⚙️ Máquinas
-                </button>
-                <button class="tab-btn" onclick="mostrarTab('asignaciones')">
-                    🔗 Asignaciones
+        <!-- Sección: Puestos de Trabajo -->
+        <div class="seccion-vertical">
+            <div class="seccion-header">
+                <div>
+                    <h2>🏢 Puestos de Trabajo</h2>
+                    <p class="seccion-descripcion">Crea y administra los puestos de trabajo de tu planta de producción</p>
+                </div>
+                <button class="btn btn-primary" onclick="mostrarModalPuesto()">
+                    ➕ Nuevo Puesto
                 </button>
             </div>
-            
-            <!-- Tab: Puestos -->
-            <div id="tab-puestos" class="tab-content active">
-                <div class="tab-header">
-                    <div class="tab-info">
-                        <h3>🏢 Gestión de Puestos de Trabajo</h3>
-                        <p>Crea y administra los puestos de trabajo de tu planta de producción</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="mostrarModalPuesto()">
-                        ➕ Nuevo Puesto
-                    </button>
+            <div id="lista-puestos" class="seccion-contenido">
+                <div class="loading">🔄 Cargando puestos...</div>
+            </div>
+        </div>
+        
+        <!-- Sección: Máquinas -->
+        <div class="seccion-vertical">
+            <div class="seccion-header">
+                <div>
+                    <h2>⚙️ Máquinas</h2>
+                    <p class="seccion-descripcion">Administra las máquinas de producción y asígnalas a puestos de trabajo</p>
                 </div>
-                <div id="lista-puestos">
-                    <div class="loading">🔄 Cargando puestos...</div>
+                <button class="btn btn-primary" onclick="mostrarModalMaquina()">
+                    ➕ Nueva Máquina
+                </button>
+            </div>
+            <div id="lista-maquinas" class="seccion-contenido">
+                <div class="loading">🔄 Cargando máquinas...</div>
+            </div>
+        </div>
+        
+        <!-- Sección: Terminales -->
+        <div class="seccion-vertical">
+            <div class="seccion-header">
+                <div>
+                    <h2>🔗 Terminales</h2>
+                    <p class="seccion-descripcion">Asigna terminales específicos a cada máquina de producción</p>
+                </div>
+                <div class="asignaciones-stats" id="asignaciones-stats">
+                    <span class="stat-badge" id="total-terminales">0 terminales</span>
+                    <span class="stat-badge alert" id="sin-asignar">0 sin asignar</span>
                 </div>
             </div>
             
-            <!-- Tab: Máquinas -->
-            <div id="tab-maquinas" class="tab-content">
-                <div class="tab-header">
-                    <div class="tab-info">
-                        <h3>⚙️ Gestión de Máquinas</h3>
-                        <p>Administra las máquinas de producción y asígnalas a puestos de trabajo</p>
-                    </div>
-                    <button class="btn btn-primary" onclick="mostrarModalMaquina()">
-                        ➕ Nueva Máquina
-                    </button>
-                </div>
-                <div id="lista-maquinas">
-                    <div class="loading">🔄 Cargando máquinas...</div>
-                </div>
-            </div>
-            
-            <!-- Tab: Asignaciones -->
-            <div id="tab-asignaciones" class="tab-content">
-                <div class="tab-header">
-                    <div class="tab-info">
-                        <h3>🔗 Asignación de Terminales</h3>
-                        <p>Asigna terminales específicos a cada máquina de producción</p>
-                    </div>
-                    <div class="asignaciones-stats" id="asignaciones-stats">
-                        <span class="stat-badge" id="total-terminales">0 terminales</span>
-                        <span class="stat-badge alert" id="sin-asignar">0 sin asignar</span>
-                    </div>
-                </div>
-                
-                <!-- Filtros -->
-                <div class="filtros-asignacion">
-                    <div class="filtro-grupo">
-                        <label>Mostrar:</label>
-                        <select id="filtro-estado" onchange="aplicarFiltros()">
-                            <option value="todos">Todos los terminales</option>
-                            <option value="sin-asignar">Solo sin asignar</option>
-                            <option value="asignados">Solo asignados</option>
-                        </select>
+            <!-- Filtros -->
+            <div class="filtros-asignacion">
+                <div class="filtro-grupo">
+                    <label>Mostrar:</label>
+                    <select id="filtro-estado" onchange="aplicarFiltros()">
+                        <option value="todos">Todos los terminales</option>
+                        <option value="sin-asignar">Solo sin asignar</option>
+                        <option value="asignados">Solo asignados</option>
+                    </select>
                     </div>
                     <div class="filtro-grupo">
                         <label>Buscar terminal:</label>
@@ -165,7 +234,7 @@
                     </div>
                 </div>
                 
-                <div id="lista-asignaciones">
+                <div id="lista-asignaciones" class="seccion-contenido">
                     <div class="loading">🔄 Cargando terminales...</div>
                 </div>
             </div>

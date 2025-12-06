@@ -5,35 +5,12 @@
 let dataPuestos = null;
 let dataMaquinas = null;
 
-// ================================
-// FUNCIONES DE NAVEGACIÓN DE TABS
-// ================================
-
-/**
- * Mostrar tab específico
- */
-function mostrarTab(tabName) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    // Mostrar tab seleccionado
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-    document.querySelector(`[onclick="mostrarTab('${tabName}')"]`).classList.add('active');
-    
-    // Cargar datos según el tab
-    if (tabName === 'puestos') {
-        cargarPuestos();
-    } else if (tabName === 'maquinas') {
-        cargarMaquinas();
-    } else if (tabName === 'asignaciones') {
-        cargarAsignaciones();
-    }
-}
+// Cargar datos al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    cargarPuestos();
+    cargarMaquinas();
+    cargarAsignaciones();
+});
 
 // ================================
 // GESTIÓN DE PUESTOS
