@@ -1044,6 +1044,8 @@ table tbody tr:hover {
 .version-v3 h3 { color: #7c3aed; }
 .version-admin h3 { color: #9333ea; }
 .version-proyectos h3 { color: #f97316; }
+.version-visualizacion h3 { color: #06b6d4; }
+.version-ordenes h3 { color: #059669; }
 
 .btn-version {
     text-align: center;
@@ -1062,6 +1064,12 @@ table tbody tr:hover {
 
 .btn-version-proyectos { background: linear-gradient(135deg, #f97316, #ea580c); border-color: #f97316; }
 .btn-version-proyectos:hover { background: linear-gradient(135deg, #ea580c, #c2410c); }
+
+.btn-version-visualizacion { background: #06b6d4; border-color: #06b6d4; }
+.btn-version-visualizacion:hover { background: #0891b2; }
+
+.btn-version-ordenes { background: #059669; border-color: #059669; }
+.btn-version-ordenes:hover { background: #047857; }
 
 .landing-summary { margin-top: 28px; }
 .landing-summary-title { border: none; }
@@ -2045,6 +2053,107 @@ table tbody tr:hover {
     width: 100%;
     border-collapse: collapse;
 }
+
+/* Estilos para Registro de Órdenes */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 25px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.stat-icon {
+    font-size: 2.5em;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.tabla-datos {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabla-datos th,
+.tabla-datos td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tabla-datos th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.tabla-datos tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+    margin-right: 5px;
+}
+
+.text-muted {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Validaciones en tiempo real */
+.validation-success {
+    color: var(--success-color);
+    font-size: 0.9em;
+    margin-top: 5px;
+    font-weight: 600;
+    display: block;
+}
+
+.validation-warning {
+    color: var(--warning-color);
+    font-size: 0.9em;
+    margin-top: 5px;
+    font-weight: 600;
+    display: block;
+}
+
+.validation-error {
+    color: var(--error-color);
+    font-size: 0.9em;
+    margin-top: 5px;
+    font-weight: 600;
+    display: block;
+}
+
 
 .tabla-reporte th, .tabla-reporte td {
     padding: 12px;

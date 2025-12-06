@@ -1,0 +1,19 @@
+{
+  "ordenes": [
+    {
+      "id": "075f8b12-08ed-44cb-8084-6fbbeed34dc2",
+      "codigo_corte": "H0420724",
+      "numero": "60234210",
+      "proyecto": "BADEN",
+      "descripcion": "Orden escaneada: H0420724-60234210-1-20251205",
+      "cantidad": 1,
+      "fecha_entrega": "2025-12-05",
+      "prioridad": "urgente",
+      "estado": "en_bono",
+      "fecha_creacion": "2025-12-05T13:53:29.587102",
+      "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "bono": "20251206_1",
+      "fecha_inicio_bono": "2025-12-06T09:02:08.434870"
+    }
+  ]
+}

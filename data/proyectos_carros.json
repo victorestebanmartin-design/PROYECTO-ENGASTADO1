@@ -95,7 +95,7 @@
       "nombre": "ITALIA",
       "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS.xlsx",
       "fecha_carga": "2025-12-02T15:43:56.973380",
-      "carro_asignado": 1,
+      "carro_asignado": null,
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
@@ -105,7 +105,7 @@
       "nombre": "ITALIA",
       "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS.xlsx",
       "fecha_carga": "2025-12-02T15:44:04.388924",
-      "carro_asignado": 2,
+      "carro_asignado": null,
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
@@ -125,16 +125,26 @@
       "nombre": "BADEN",
       "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
       "fecha_carga": "2025-12-02T15:44:21.901341",
-      "carro_asignado": 3,
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 14,
+      "nombre": "60234210 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-05T18:16:25.194870",
+      "carro_asignado": null,
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
     }
   ],
   "carros": {
-    "1": 10,
-    "2": 11,
-    "3": 13,
+    "1": null,
+    "2": null,
+    "3": null,
     "4": null,
     "5": null,
     "6": null
@@ -593,6 +603,59 @@
           ]
         }
       }
+    },
+    "20251205_1": {
+      "nombre": "20251205_1",
+      "carros": [
+        {
+          "carro": 1,
+          "proyecto_id": 14,
+          "proyecto_nombre": "60234210 - H0420724",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        }
+      ],
+      "fecha_generacion": "2025-12-05T18:17:03.739676",
+      "estado": "activo",
+      "num_cortes": 1,
+      "progreso": {
+        "640204": {
+          "carros_completados": [
+            1
+          ],
+          "estado": "completado"
+        }
+      },
+      "progreso_por_carro": {
+        "1": {
+          "terminales_completados": [
+            "Q2.1",
+            "Q3",
+            "Q9",
+            "B12",
+            "B11"
+          ],
+          "operarios": [
+            "640204"
+          ]
+        }
+      }
+    },
+    "20251206_1": {
+      "nombre": "20251206_1",
+      "carros": [
+        {
+          "carro": 1,
+          "proyecto_id": 14,
+          "proyecto_nombre": "60234210 - H0420724",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        }
+      ],
+      "ordenes": [
+        "60234210"
+      ],
+      "fecha_generacion": "2025-12-06T09:02:08.435740",
+      "estado": "activo",
+      "num_cortes": 1
     }
   }
 }

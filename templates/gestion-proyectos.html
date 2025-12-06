@@ -34,6 +34,24 @@
             </div>
         </section>
 
+        <!-- Sección de Órdenes Pendientes -->
+        <section class="seccion-ordenes" style="margin-top: 30px;">
+            <div class="header-carros">
+                <h2>📋 Órdenes Pendientes de Producción</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" onclick="cargarSiguientesOrdenes()">
+                        <i class="fas fa-arrow-down"></i> Cargar Siguientes
+                    </button>
+                    <button class="btn-warning" onclick="limpiarCarros()">
+                        <i class="fas fa-broom"></i> Limpiar Carros
+                    </button>
+                </div>
+            </div>
+            <div id="listaOrdenesPendientes" class="lista-ordenes">
+                <!-- Lista de órdenes se cargará aquí -->
+            </div>
+        </section>
+
         <!-- Sección de Gestión de Bonos -->
         <section class="seccion-gestion-bonos" id="seccionGestionBonos" style="display: none; margin-top: 30px;">
             <div class="header-carros">

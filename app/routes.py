@@ -93,6 +93,58 @@ def gestion_bonos():
     """Página de gestión de bonos"""
     return render_template('gestion-bonos.html')
 
+@bp.route('/registro-ordenes')
+def registro_ordenes():
+    """Página de registro de órdenes de producción"""
+    return render_template('registro-ordenes.html')
+
+@bp.route('/api/validar_codigo_corte', methods=['POST'])
+def validar_codigo_corte():
+    """Validar si un código de corte tiene archivo Excel asociado"""
+    try:
+        data = request.get_json()
+        codigo_corte = data.get('codigo_corte', '').strip().upper()
+        
+        if not codigo_corte:
+            return jsonify({
+                'success': False,
+                'message': 'Código de corte vacío'
+            })
+        
+        codigos_file = current_app.config['CODIGOS_FILE']
+        
+        if not os.path.exists(codigos_file):
+            return jsonify({
+                'success': False,
+                'tiene_excel': False,
+                'mensaje': 'No hay archivos Excel registrados'
+            })
+        
+        with open(codigos_file, 'r', encoding='utf-8') as f:
+            codigos_data = json.load(f)
+        
+        for corte in codigos_data.get('cortes', []):
+            if corte.get('codigo_barras', '').upper() == codigo_corte:
+                return jsonify({
+                    'success': True,
+                    'tiene_excel': True,
+                    'archivo': corte.get('archivo'),
+                    'descripcion': corte.get('descripcion', ''),
+                    'mensaje': f'✓ Asociado a: {corte.get("archivo")}'
+                })
+        
+        return jsonify({
+            'success': True,
+            'tiene_excel': False,
+            'mensaje': '⚠ Sin archivo Excel asociado'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al validar: {str(e)}'
+        })
+
 @bp.route('/api/cargar_corte', methods=['POST'])
 def cargar_corte():
     """Cargar archivo Excel por código de barras"""
@@ -1001,6 +1053,36 @@ def liberar_carro(carro):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
+@bp.route('/api/carros/asignar-orden', methods=['POST'])
+def asignar_orden_carro():
+    """Asignar una orden de producción directamente a un carro"""
+    try:
+        datos = request.json
+        numero_carro = datos.get('numero_carro')
+        proyecto_nombre = datos.get('proyecto_nombre')
+        archivo = datos.get('archivo')
+        
+        if not numero_carro or not proyecto_nombre or not archivo:
+            return jsonify({
+                'success': False, 
+                'message': 'numero_carro, proyecto_nombre y archivo son requeridos'
+            })
+        
+        # Crear proyecto temporal y asignar al carro
+        proyecto_manager.crear_proyecto_y_asignar_carro(
+            nombre=proyecto_nombre,
+            archivo=archivo,
+            numero_carro=numero_carro
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Orden asignada al carro {numero_carro}'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
 @bp.route('/api/proyectos/<int:proyecto_id>/progreso', methods=['POST'])
 def actualizar_progreso_proyecto(proyecto_id):
     """Actualizar progreso de un proyecto"""
@@ -1461,4 +1543,214 @@ def actualizar_sistema():
         return jsonify({
             'success': False,
             'message': f'Error inesperado: {str(e)}'
+        })
+
+
+# ================================
+# API: Registro de Órdenes
+# ================================
+
+@bp.route('/api/ordenes/crear', methods=['POST'])
+def crear_orden():
+    """Crear una nueva orden de producción"""
+    try:
+        import uuid
+        from datetime import datetime
+        
+        data = request.get_json()
+        ordenes_file = os.path.join(current_app.config['DATA_FOLDER'], 'ordenes_produccion.json')
+        codigos_file = current_app.config['CODIGOS_FILE']
+        
+        # Leer órdenes existentes
+        if os.path.exists(ordenes_file):
+            with open(ordenes_file, 'r', encoding='utf-8') as f:
+                ordenes_data = json.load(f)
+        else:
+            ordenes_data = {'ordenes': []}
+        
+        # Buscar archivo Excel asociado al código de corte
+        archivo_excel = None
+        descripcion_corte = None
+        codigo_corte = data.get('codigo_corte', '')
+        
+        if os.path.exists(codigos_file):
+            with open(codigos_file, 'r', encoding='utf-8') as f:
+                codigos_data = json.load(f)
+            
+            for corte in codigos_data.get('cortes', []):
+                if corte.get('codigo_barras', '').upper() == codigo_corte.upper():
+                    archivo_excel = corte.get('archivo')
+                    descripcion_corte = corte.get('descripcion')
+                    break
+        
+        # Crear nueva orden
+        nueva_orden = {
+            'id': str(uuid.uuid4()),
+            'codigo_corte': codigo_corte,
+            'archivo_excel': archivo_excel,
+            'numero': data.get('numero'),
+            'proyecto': data.get('proyecto', descripcion_corte or ''),
+            'descripcion': data.get('descripcion', ''),
+            'cantidad': data.get('cantidad'),
+            'fecha_entrega': data.get('fecha_entrega'),
+            'prioridad': data.get('prioridad'),
+            'estado': 'pendiente',
+            'fecha_creacion': datetime.now().isoformat()
+        }
+        
+        ordenes_data['ordenes'].append(nueva_orden)
+        
+        # Guardar
+        with open(ordenes_file, 'w', encoding='utf-8') as f:
+            json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Orden creada correctamente',
+            'orden': nueva_orden,
+            'archivo_encontrado': archivo_excel is not None
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al crear la orden: {str(e)}'
+        })
+
+
+@bp.route('/api/ordenes/listar', methods=['GET'])
+def listar_ordenes():
+    """Listar todas las órdenes ordenadas por fecha de liberación (más antigua primero)"""
+    try:
+        ordenes_file = os.path.join(current_app.config['DATA_FOLDER'], 'ordenes_produccion.json')
+        codigos_file = current_app.config['CODIGOS_FILE']
+        
+        if os.path.exists(ordenes_file):
+            with open(ordenes_file, 'r', encoding='utf-8') as f:
+                ordenes_data = json.load(f)
+            ordenes = ordenes_data.get('ordenes', [])
+            
+            # Cargar códigos de corte
+            codigos_map = {}
+            if os.path.exists(codigos_file):
+                with open(codigos_file, 'r', encoding='utf-8') as f:
+                    codigos_data = json.load(f)
+                for corte in codigos_data.get('cortes', []):
+                    codigos_map[corte.get('codigo_barras', '').upper()] = {
+                        'archivo': corte.get('archivo'),
+                        'descripcion': corte.get('descripcion', '')
+                    }
+            
+            # Actualizar órdenes sin archivo_excel asociado
+            actualizado = False
+            for orden in ordenes:
+                codigo_corte = orden.get('codigo_corte', '').upper()
+                # Si no tiene archivo_excel o es null, buscar asociación
+                if not orden.get('archivo_excel') and codigo_corte in codigos_map:
+                    orden['archivo_excel'] = codigos_map[codigo_corte]['archivo']
+                    actualizado = True
+            
+            # Guardar cambios si hubo actualizaciones
+            if actualizado:
+                with open(ordenes_file, 'w', encoding='utf-8') as f:
+                    json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
+            
+            # Ordenar por fecha de entrega (más antigua primero)
+            ordenes_ordenadas = sorted(
+                ordenes, 
+                key=lambda x: x.get('fecha_entrega', '9999-12-31')
+            )
+        else:
+            ordenes_ordenadas = []
+        
+        return jsonify({
+            'success': True,
+            'ordenes': ordenes_ordenadas
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al listar órdenes: {str(e)}'
+        })
+
+
+@bp.route('/api/ordenes/eliminar/<orden_id>', methods=['DELETE'])
+def eliminar_orden(orden_id):
+    """Eliminar una orden"""
+    try:
+        ordenes_file = os.path.join(current_app.config['DATA_FOLDER'], 'ordenes_produccion.json')
+        
+        if os.path.exists(ordenes_file):
+            with open(ordenes_file, 'r', encoding='utf-8') as f:
+                ordenes_data = json.load(f)
+        else:
+            return jsonify({'success': False, 'message': 'No hay órdenes registradas'})
+        
+        # Filtrar la orden a eliminar
+        ordenes_data['ordenes'] = [o for o in ordenes_data['ordenes'] if o['id'] != orden_id]
+        
+        # Guardar
+        with open(ordenes_file, 'w', encoding='utf-8') as f:
+            json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Orden eliminada correctamente'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al eliminar la orden: {str(e)}'
+        })
+
+
+@bp.route('/api/ordenes/actualizar/<orden_id>', methods=['PUT'])
+def actualizar_orden(orden_id):
+    """Actualizar una orden existente"""
+    try:
+        data = request.get_json()
+        ordenes_file = os.path.join(current_app.config['DATA_FOLDER'], 'ordenes_produccion.json')
+        
+        if os.path.exists(ordenes_file):
+            with open(ordenes_file, 'r', encoding='utf-8') as f:
+                ordenes_data = json.load(f)
+        else:
+            return jsonify({'success': False, 'message': 'No hay órdenes registradas'})
+        
+        # Buscar la orden
+        orden_encontrada = False
+        for orden in ordenes_data['ordenes']:
+            if orden['id'] == orden_id:
+                # Actualizar campos
+                orden['codigo_corte'] = data.get('codigo_corte', orden.get('codigo_corte', ''))
+                orden['numero'] = data.get('numero', orden.get('numero'))
+                orden['proyecto'] = data.get('proyecto', orden.get('proyecto', ''))
+                orden['descripcion'] = data.get('descripcion', orden.get('descripcion', ''))
+                orden['cantidad'] = data.get('cantidad', orden.get('cantidad'))
+                orden['fecha_entrega'] = data.get('fecha_entrega', orden.get('fecha_entrega'))
+                orden['prioridad'] = data.get('prioridad', orden.get('prioridad'))
+                # El estado se puede actualizar opcionalmente
+                if 'estado' in data:
+                    orden['estado'] = data.get('estado')
+                orden_encontrada = True
+                break
+        
+        if not orden_encontrada:
+            return jsonify({'success': False, 'message': 'Orden no encontrada'})
+        
+        # Guardar
+        with open(ordenes_file, 'w', encoding='utf-8') as f:
+            json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Orden actualizada correctamente'
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al actualizar la orden: {str(e)}'
         })

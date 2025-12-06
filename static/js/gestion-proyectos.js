@@ -4,11 +4,13 @@
 
 let proyectoActualAsignar = null;
 let carrosActuales = [];
+let ordenesPendientes = [];
 
 // Cargar datos al iniciar
 document.addEventListener('DOMContentLoaded', () => {
     cargarCarros();
     cargarArchivosExcel();
+    cargarOrdenesPendientes();
 });
 
 /**
@@ -192,6 +194,12 @@ async function abrirModalGenerarBono() {
         return;
     }
     
+    // Mostrar modal de confirmación primero
+    const confirmacion = await mostrarModalConfirmacionCarros(carrosOcupados);
+    if (!confirmacion) {
+        return;
+    }
+    
     // Obtener nombre sugerido
     try {
         const response = await fetch('/api/bonos/nombre-sugerido');
@@ -220,6 +228,95 @@ async function abrirModalGenerarBono() {
 }
 
 /**
+ * Mostrar modal de confirmación de carros antes de generar bono
+ */
+function mostrarModalConfirmacionCarros(carrosOcupados) {
+    return new Promise((resolve) => {
+        const modalHtml = `
+            <div id="modalConfirmacionCarros" class="modal active" style="z-index: 10000;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>Confirmar Carros para el Bono</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 15px;">Los siguientes carros serán incluidos en el bono:</p>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+                            ${carrosOcupados.map(carro => `
+                                <div style="padding: 10px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #0d6efd; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>Carro ${carro.numero}:</strong> ${carro.proyecto_nombre}
+                                    </div>
+                                    <button onclick="event.stopPropagation(); liberarCarroYActualizar(${carro.numero})" 
+                                            style="padding: 4px 8px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                                        <i class="fas fa-times"></i> Quitar
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <p style="color: #6c757d; font-size: 0.9em; margin-bottom: 0;">
+                            ¿Deseas modificar algún carro antes de generar el bono?
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-secondary" onclick="cerrarModalConfirmacionCarros(false)">
+                            <i class="fas fa-edit"></i> Modificar Carros
+                        </button>
+                        <button class="btn-primary" onclick="cerrarModalConfirmacionCarros(true)">
+                            <i class="fas fa-check"></i> Continuar con Estos Carros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Agregar modal al DOM
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = modalHtml;
+        document.body.appendChild(tempDiv.firstElementChild);
+        
+        // Guardar la función de resolución
+        window.resolveConfirmacionCarros = resolve;
+    });
+}
+
+/**
+ * Cerrar modal de confirmación de carros
+ */
+function cerrarModalConfirmacionCarros(continuar) {
+    const modal = document.getElementById('modalConfirmacionCarros');
+    if (modal) {
+        modal.remove();
+    }
+    
+    if (window.resolveConfirmacionCarros) {
+        window.resolveConfirmacionCarros(continuar);
+        window.resolveConfirmacionCarros = null;
+    }
+}
+
+/**
+ * Liberar carro y actualizar vista de confirmación
+ */
+async function liberarCarroYActualizar(numeroCarro) {
+    try {
+        const response = await fetch(`/api/carros/${numeroCarro}/liberar`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await cargarCarros();
+            cerrarModalConfirmacionCarros(false);
+            mostrarMensaje(`Carro ${numeroCarro} liberado`, 'success');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al liberar carro', 'error');
+    }
+}
+
+/**
  * Confirmar generación de bono
  */
 async function confirmarGenerarBono() {
@@ -243,6 +340,8 @@ async function confirmarGenerarBono() {
             mostrarMensaje('Bono generado correctamente', 'success');
             cerrarModal('modalGenerarBono');
             mostrarModalBono(data.bono);
+            // Recargar lista de órdenes para actualizar estados
+            await cargarOrdenesPendientes();
         } else {
             mostrarMensaje(data.message || 'Error al generar bono', 'error');
         }
@@ -676,3 +775,177 @@ async function guardarEdicionBono() {
         console.error(error);
     }
 }
+
+/**
+ * Cargar órdenes pendientes de producción
+ */
+async function cargarOrdenesPendientes() {
+    try {
+        const response = await fetch('/api/ordenes/listar');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Filtrar solo órdenes pendientes con archivo Excel asociado
+            ordenesPendientes = data.ordenes.filter(o => 
+                o.estado === 'pendiente' && o.archivo_excel
+            );
+            mostrarOrdenesPendientes();
+        }
+    } catch (error) {
+        console.error('Error al cargar órdenes:', error);
+    }
+}
+
+/**
+ * Mostrar lista de órdenes pendientes
+ */
+function mostrarOrdenesPendientes() {
+    const container = document.getElementById('listaOrdenesPendientes');
+    
+    if (ordenesPendientes.length === 0) {
+        container.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;">No hay órdenes pendientes con archivo Excel asociado</p>';
+        return;
+    }
+    
+    container.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
+            <thead style="background: #f1f5f9;">
+                <tr>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">#</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Orden</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Código Corte</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Archivo Excel</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Cantidad</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Fecha Liberación</th>
+                    <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e2e8f0;">Prioridad</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${ordenesPendientes.map((orden, index) => `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 12px;">${index + 1}</td>
+                        <td style="padding: 12px;"><strong>${orden.numero}</strong></td>
+                        <td style="padding: 12px;">${orden.codigo_corte}</td>
+                        <td style="padding: 12px; font-size: 0.9em;">📄 ${orden.archivo_excel}</td>
+                        <td style="padding: 12px;">${orden.cantidad}</td>
+                        <td style="padding: 12px;">${orden.fecha_entrega}</td>
+                        <td style="padding: 12px;">
+                            <span style="
+                                padding: 4px 12px;
+                                border-radius: 12px;
+                                font-size: 0.85em;
+                                font-weight: 600;
+                                background: ${orden.prioridad === 'urgente' ? '#fee2e2' : 
+                                           orden.prioridad === 'alta' ? '#fed7aa' : 
+                                           orden.prioridad === 'media' ? '#fef08a' : '#dbeafe'};
+                                color: ${orden.prioridad === 'urgente' ? '#dc2626' : 
+                                        orden.prioridad === 'alta' ? '#ea580c' : 
+                                        orden.prioridad === 'media' ? '#ca8a04' : '#2563eb'};
+                            ">
+                                ${orden.prioridad.toUpperCase()}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+/**
+ * Cargar las siguientes órdenes en los carros libres
+ */
+async function cargarSiguientesOrdenes() {
+    // Obtener carros libres
+    const carrosLibres = carrosActuales.filter(c => !c.ocupado);
+    
+    if (carrosLibres.length === 0) {
+        mostrarMensaje('No hay carros libres disponibles', 'warning');
+        return;
+    }
+    
+    if (ordenesPendientes.length === 0) {
+        mostrarMensaje('No hay órdenes pendientes para cargar', 'warning');
+        return;
+    }
+    
+    // Tomar tantas órdenes como carros libres haya
+    const ordenesACargar = ordenesPendientes.slice(0, carrosLibres.length);
+    
+    try {
+        // Asignar cada orden a un carro libre
+        for (let i = 0; i < ordenesACargar.length; i++) {
+            const orden = ordenesACargar[i];
+            const carro = carrosLibres[i];
+            
+            const response = await fetch('/api/carros/asignar-orden', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    numero_carro: carro.numero,
+                    proyecto_nombre: `${orden.numero} - ${orden.codigo_corte}`,
+                    archivo: orden.archivo_excel
+                })
+            });
+            
+            const data = await response.json();
+            if (!data.success) {
+                console.error(`Error asignando carro ${carro.numero}:`, data.message);
+            }
+        }
+        
+        mostrarMensaje(`${ordenesACargar.length} orden(es) cargada(s) en los carros`, 'success');
+        await cargarCarros();
+        await cargarOrdenesPendientes();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al cargar órdenes en carros', 'error');
+    }
+}
+
+/**
+ * Limpiar todos los carros
+ */
+async function limpiarCarros() {
+    if (!confirm('¿Estás seguro de que quieres liberar TODOS los carros?')) {
+        return;
+    }
+    
+    try {
+        const carrosOcupados = carrosActuales.filter(c => c.ocupado);
+        
+        if (carrosOcupados.length === 0) {
+            mostrarMensaje('No hay carros ocupados', 'info');
+            return;
+        }
+        
+        let errores = 0;
+        for (const carro of carrosOcupados) {
+            const response = await fetch(`/api/carros/${carro.numero}/liberar`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            if (!data.success) {
+                errores++;
+                console.error(`Error liberando carro ${carro.numero}:`, data.message);
+            }
+        }
+        
+        if (errores === 0) {
+            mostrarMensaje(`${carrosOcupados.length} carro(s) liberado(s) correctamente`, 'success');
+        } else {
+            mostrarMensaje(`Se liberaron algunos carros pero hubo ${errores} error(es)`, 'warning');
+        }
+        
+        await cargarCarros();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al limpiar carros', 'error');
+    }
+}
+

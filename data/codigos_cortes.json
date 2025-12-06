@@ -7,10 +7,10 @@
       "proyecto": ""
     },
     {
-      "codigo_barras": "PC_CAB_BADEN",
+      "codigo_barras": "H0420724",
       "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
-      "descripcion": "PC CABINA BADEN",
-      "proyecto": ""
+      "descripcion": "PC CAB BADEN",
+      "proyecto": "BADEN"
     }
   ]
 }

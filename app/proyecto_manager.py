@@ -171,6 +171,8 @@ class ProyectoManager:
         
         # Obtener todos los carros ocupados
         carros_ocupados = []
+        ordenes_ids = []  # IDs de órdenes asociadas
+        
         for num_carro, proyecto_id in self.proyectos['carros'].items():
             if proyecto_id:
                 proyecto = self.obtener_proyecto(proyecto_id)
@@ -181,6 +183,12 @@ class ProyectoManager:
                         'proyecto_nombre': proyecto['nombre'],
                         'archivo_excel': proyecto['archivo']
                     })
+                    
+                    # Extraer número de orden del nombre del proyecto si existe
+                    # Formato: "NUMERO_ORDEN - CODIGO_CORTE"
+                    if ' - ' in proyecto['nombre']:
+                        numero_orden = proyecto['nombre'].split(' - ')[0]
+                        ordenes_ids.append(numero_orden)
         
         if not carros_ocupados:
             return None, 'No hay carros con proyectos asignados'
@@ -195,10 +203,14 @@ class ProyectoManager:
         if nombre_bono in self.proyectos['bonos']:
             return None, f'Ya existe un bono con el nombre "{nombre_bono}"'
         
+        # Actualizar estado de las órdenes a "en_bono"
+        self._actualizar_estado_ordenes(ordenes_ids, 'en_bono', nombre_bono)
+        
         # Crear bono
         self.proyectos['bonos'][nombre_bono] = {
             'nombre': nombre_bono,
             'carros': carros_ocupados,
+            'ordenes': ordenes_ids,
             'fecha_generacion': datetime.now().isoformat(),
             'estado': 'activo',
             'num_cortes': len(carros_ocupados)
@@ -206,6 +218,33 @@ class ProyectoManager:
         
         self.guardar_proyectos()
         return self.proyectos['bonos'][nombre_bono], None
+    
+    def _actualizar_estado_ordenes(self, numeros_ordenes, nuevo_estado, nombre_bono=None):
+        """Actualizar estado de múltiples órdenes"""
+        from config import Config
+        
+        ordenes_file = os.path.join(Config.DATA_FOLDER, 'ordenes_produccion.json')
+        
+        if not os.path.exists(ordenes_file):
+            return
+        
+        with open(ordenes_file, 'r', encoding='utf-8') as f:
+            ordenes_data = json.load(f)
+        
+        for orden in ordenes_data.get('ordenes', []):
+            if orden.get('numero') in numeros_ordenes:
+                orden['estado'] = nuevo_estado
+                if nombre_bono:
+                    orden['bono'] = nombre_bono
+                if nuevo_estado == 'en_bono':
+                    orden['fecha_inicio_bono'] = datetime.now().isoformat()
+                elif nuevo_estado == 'engastando':
+                    orden['fecha_inicio_engaste'] = datetime.now().isoformat()
+                elif nuevo_estado == 'finalizado':
+                    orden['fecha_finalizacion'] = datetime.now().isoformat()
+        
+        with open(ordenes_file, 'w', encoding='utf-8') as f:
+            json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
     
     def obtener_bono(self, nombre_bono):
         """Obtener información de un bono"""
@@ -278,12 +317,54 @@ class ProyectoManager:
         if terminal not in bono['progreso_por_carro'][str(carro)]['operarios']:
             bono['progreso_por_carro'][str(carro)]['operarios'].append(terminal)
         
+        # Actualizar estado de órdenes a "engastando" cuando se empieza a trabajar
+        ordenes_bono = bono.get('ordenes', [])
+        if ordenes_bono:
+            # Buscar si alguna orden está aún en estado "en_bono"
+            self._actualizar_estado_ordenes_si_necesario(ordenes_bono, 'en_bono', 'engastando')
+        
         # Verificar si el terminal está completo (todos los carros)
         if len(bono['progreso'][terminal]['carros_completados']) >= len(bono['carros']):
             bono['progreso'][terminal]['estado'] = 'completado'
         
+        # Verificar si el bono está completamente terminado
+        todos_carros_completos = True
+        for carro_info in bono['carros']:
+            carro_num = str(carro_info['carro'])
+            if carro_num not in bono.get('progreso_por_carro', {}):
+                todos_carros_completos = False
+                break
+        
+        # Si todos los carros están completos, marcar órdenes como finalizadas
+        if todos_carros_completos and ordenes_bono:
+            self._actualizar_estado_ordenes(ordenes_bono, 'finalizado')
+        
         self.guardar_proyectos()
         return True
+    
+    def _actualizar_estado_ordenes_si_necesario(self, numeros_ordenes, estado_actual, nuevo_estado):
+        """Actualizar estado solo si las órdenes están en el estado_actual"""
+        from config import Config
+        
+        ordenes_file = os.path.join(Config.DATA_FOLDER, 'ordenes_produccion.json')
+        
+        if not os.path.exists(ordenes_file):
+            return
+        
+        with open(ordenes_file, 'r', encoding='utf-8') as f:
+            ordenes_data = json.load(f)
+        
+        cambios = False
+        for orden in ordenes_data.get('ordenes', []):
+            if orden.get('numero') in numeros_ordenes and orden.get('estado') == estado_actual:
+                orden['estado'] = nuevo_estado
+                if nuevo_estado == 'engastando':
+                    orden['fecha_inicio_engaste'] = datetime.now().isoformat()
+                cambios = True
+        
+        if cambios:
+            with open(ordenes_file, 'w', encoding='utf-8') as f:
+                json.dump(ordenes_data, f, ensure_ascii=False, indent=2)
     
     def obtener_progreso_bono(self, nombre_bono):
         """Obtener progreso completo de un bono"""
@@ -364,6 +445,29 @@ class ProyectoManager:
         
         self.guardar_proyectos()
         return True
+    
+    def crear_proyecto_y_asignar_carro(self, nombre, archivo, numero_carro):
+        """Crear un proyecto temporal y asignarlo directamente a un carro"""
+        # Crear proyecto
+        proyecto = {
+            'id': len(self.proyectos['proyectos']) + 1,
+            'nombre': nombre,
+            'archivo': archivo,
+            'fecha_carga': datetime.now().isoformat(),
+            'carro_asignado': numero_carro,
+            'progreso': 0,
+            'terminales_completados': [],
+            'estado': 'activo'
+        }
+        
+        self.proyectos['proyectos'].append(proyecto)
+        
+        # Asignar a carro
+        str_carro = str(numero_carro)
+        self.proyectos['carros'][str_carro] = proyecto['id']
+        
+        self.guardar_proyectos()
+        return proyecto
 
 # Instancia global
 proyecto_manager = ProyectoManager()

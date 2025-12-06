@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Órdenes - Sistema de Engastado</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📋 Registro de Órdenes de Producción</h1>
+            <a href="{{ url_for('main.home') }}" class="btn-admin">🔙 Volver al Inicio</a>
+        </header>
+
+        <!-- Sección: Nueva Orden -->
+        <div class="card">
+            <h2>➕ Escanear Código de Barras</h2>
+            <p class="instruccion">Escanea el código de barras de la orden (formato: CODIGO-ORDEN-CANT-FECHA)</p>
+            
+            <form id="form-escanear-orden">
+                <div class="input-group">
+                    <label for="codigo-barras-orden">Código de Barras:</label>
+                    <input 
+                        type="text" 
+                        id="codigo-barras-orden" 
+                        placeholder="Ejemplo: CORTE001-OP2024-50-20251215" 
+                        required
+                        autofocus
+                    >
+                    <small class="text-muted">Formato: CODIGO_CORTE-ORDEN-CANTIDAD-FECHA_LIBERACION(YYYYMMDD)</small>
+                </div>
+
+                <div id="validacion-corte" class="mensaje hidden"></div>
+
+                <button type="submit" class="btn-primary">🔍 Procesar Código</button>
+            </form>
+            
+            <div id="mensaje-escaneo" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Nueva Orden Manual -->
+        <div class="card">
+            <h2>✏️ Registro Manual (Opcional)</h2>
+            <p class="instruccion">O introduce los datos manualmente si no tienes código de barras</p>
+            
+            <button onclick="toggleFormularioManual()" class="btn-secondary">📝 Mostrar Formulario Manual</button>
+            
+            <form id="form-nueva-orden" style="display: none; margin-top: 20px;">
+                <div class="input-group">
+                    <label for="orden-codigo-corte">Código de Corte:</label>
+                    <input type="text" id="orden-codigo-corte" placeholder="Ej: CORTE001" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-numero">Número de Orden:</label>
+                    <input type="text" id="orden-numero" placeholder="Ej: OP-2024-001" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-proyecto">Proyecto:</label>
+                    <input type="text" id="orden-proyecto" placeholder="Ej: Coradia Italia">
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-descripcion">Descripción:</label>
+                    <textarea id="orden-descripcion" placeholder="Descripción de la orden" rows="3"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-cantidad">Cantidad de Cables:</label>
+                    <input type="number" id="orden-cantidad" placeholder="Ej: 150" min="1" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-fecha">Fecha de Liberación:</label>
+                    <input type="date" id="orden-fecha" required>
+                    <small class="text-muted">Fecha en que la orden estará lista para producción</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="orden-prioridad">Prioridad:</label>
+                    <select id="orden-prioridad" required>
+                        <option value="">-- Seleccionar --</option>
+                        <option value="baja">🟢 Baja</option>
+                        <option value="media">🟡 Media</option>
+                        <option value="alta">🟠 Alta</option>
+                        <option value="urgente">🔴 Urgente</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-primary">✅ Registrar Orden</button>
+            </form>
+            
+            <div id="mensaje-orden" class="mensaje hidden"></div>
+        </div>
+
+        <!-- Sección: Listado de Órdenes -->
+        <div class="card">
+            <h2>📊 Órdenes Registradas</h2>
+            <p class="instruccion">Lista de todas las órdenes de producción disponibles</p>
+            
+            <!-- Filtros -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div class="input-group">
+                    <label for="filtro-busqueda">🔍 Buscar</label>
+                    <input type="text" id="filtro-busqueda" placeholder="Orden, código, proyecto..." onkeyup="aplicarFiltros()">
+                </div>
+                
+                <div class="input-group">
+                    <label for="filtro-estado">Estado</label>
+                    <select id="filtro-estado" onchange="aplicarFiltros()">
+                        <option value="">Todos</option>
+                        <option value="pendiente">⏳ Pendiente</option>
+                        <option value="en_bono">📋 En Bono</option>
+                        <option value="engastando">⚙️ Engastando</option>
+                        <option value="finalizado">✅ Finalizado</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="filtro-prioridad">Prioridad</label>
+                    <select id="filtro-prioridad" onchange="aplicarFiltros()">
+                        <option value="">Todas</option>
+                        <option value="urgente">🔴 Urgente</option>
+                        <option value="alta">🟠 Alta</option>
+                        <option value="media">🟡 Media</option>
+                        <option value="baja">🟢 Baja</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="filtro-fecha-desde">Fecha Desde</label>
+                    <input type="date" id="filtro-fecha-desde" onchange="aplicarFiltros()">
+                </div>
+                
+                <div class="input-group">
+                    <label for="filtro-fecha-hasta">Fecha Hasta</label>
+                    <input type="date" id="filtro-fecha-hasta" onchange="aplicarFiltros()">
+                </div>
+                
+                <div style="display: flex; align-items: flex-end; gap: 10px;">
+                    <button onclick="limpiarFiltros()" class="btn-secondary" style="flex: 1;">🗑️ Limpiar</button>
+                    <button onclick="cargarOrdenes()" class="btn-secondary" style="flex: 1;">🔄 Actualizar</button>
+                </div>
+            </div>
+            
+            <div id="lista-ordenes" class="tabla-container">
+                <p class="text-muted">Cargando órdenes...</p>
+            </div>
+        </div>
+
+        <!-- Sección: Estadísticas -->
+        <div class="card">
+            <h2>📈 Estadísticas</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Órdenes</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-pendientes">0</div>
+                        <div class="stat-label">Pendientes</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-completadas">0</div>
+                        <div class="stat-label">Completadas</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔴</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-urgentes">0</div>
+                        <div class="stat-label">Urgentes</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/registro-ordenes.js') }}"></script>
+</body>
+</html>
