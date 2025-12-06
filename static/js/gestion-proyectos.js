@@ -414,6 +414,19 @@ function actualizarSelectArchivosExcel(archivos) {
 /**
  * Cerrar modal
  */
+/**
+ * Abrir modal
+ */
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+/**
+ * Cerrar modal
+ */
 function cerrarModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {

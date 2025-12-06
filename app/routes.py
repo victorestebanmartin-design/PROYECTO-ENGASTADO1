@@ -1491,6 +1491,21 @@ def actualizar_sistema():
         import subprocess
         import sys
         
+        # Guardar cambios locales en stash (por si acaso)
+        subprocess.run(
+            ['git', 'stash'],
+            capture_output=True,
+            text=True
+        )
+        
+        # Resetear cambios locales para evitar conflictos
+        subprocess.run(
+            ['git', 'reset', '--hard', 'HEAD'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        
         # Hacer git pull
         result = subprocess.run(
             ['git', 'pull', 'origin', 'main'],
