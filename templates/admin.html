@@ -109,46 +109,6 @@
                 </a>
             </div>
         </div>
-            
-            <div id="tab-puestos" class="tab-content active">
-                <div class="tab-header">
-                    <h3>Gestión de Puestos</h3>
-                    <button onclick="mostrarModalPuesto()" class="btn-primary btn-small">➕ Nuevo Puesto</button>
-                </div>
-                <div id="lista-puestos" class="puestos-container">
-                    <p class="text-muted">Cargando puestos...</p>
-                </div>
-            </div>
-            
-            <div id="tab-maquinas" class="tab-content">
-                <div class="tab-header">
-                    <h3>Gestión de Máquinas</h3>
-                    <button onclick="mostrarModalMaquina()" class="btn-primary btn-small">➕ Nueva Máquina</button>
-                </div>
-                <div id="lista-maquinas" class="maquinas-container">
-                    <p class="text-muted">Selecciona un puesto para ver sus máquinas</p>
-                </div>
-            </div>
-            
-            <div id="tab-asignaciones" class="tab-content">
-                <div class="tab-header">
-                    <h3>Asignación de Terminales</h3>
-                    <button onclick="cargarTerminalesParaAsignar()" class="btn-secondary">🔄 Cargar Terminales</button>
-                </div>
-                <div id="asignaciones-container">
-                    <div class="asignacion-grid">
-                        <div id="terminales-disponibles" class="terminales-panel">
-                            <h4>Terminales Disponibles</h4>
-                            <div class="terminales-list"></div>
-                        </div>
-                        <div id="maquinas-asignacion" class="maquinas-panel">
-                            <h4>Máquinas</h4>
-                            <div class="maquinas-list"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Sección: Gestión de Terminales (Original) -->
         <div class="card">
@@ -163,27 +123,27 @@
         </div>
 
         <!-- Sección: Actualización del Sistema -->
-        <div class="card" style="border: 3px solid #3b82f6;">
-            <h2 style="color: #3b82f6;">🔄 Actualización del Sistema</h2>
+        <div class="card">
+            <h2>🔄 Actualización del Sistema</h2>
             <p class="instruccion">Comprueba si hay actualizaciones disponibles en GitHub y actualiza automáticamente</p>
             
             <div id="update-status" class="mensaje hidden"></div>
             
-            <button onclick="comprobarActualizaciones()" class="btn-primary" style="background-color: #3b82f6;">
+            <button onclick="comprobarActualizaciones()" class="btn-secondary">
                 🔍 Comprobar Actualizaciones
             </button>
             
-            <button onclick="actualizarSistema()" class="btn-primary" style="background-color: #10b981; margin-left: 10px;">
+            <button onclick="actualizarSistema()" class="btn-primary" style="margin-left: 10px;">
                 ⬇️ Actualizar Ahora
             </button>
         </div>
 
         <!-- Sección: PELIGRO - Resetear Sistema -->
-        <div class="card" style="border: 3px solid #ef4444; background-color: #fef08a;">
-            <h2 style="color: #ef4444;">⚠️ ZONA DE PELIGRO</h2>
-            <p class="instruccion" style="color: #dc2626; font-weight: 600;">Esta acción eliminará TODOS los archivos Excel y TODOS los códigos de barras registrados. No se puede deshacer.</p>
+        <div class="card">
+            <h2>⚠️ ZONA DE PELIGRO</h2>
+            <p class="instruccion"><strong>Esta acción eliminará TODOS los archivos Excel y TODOS los códigos de barras registrados. No se puede deshacer.</strong></p>
             
-            <button onclick="resetearSistema()" class="btn-danger" style="background-color: #dc2626; color: white; font-weight: 700;">
+            <button onclick="resetearSistema()" class="btn-danger">
                 🗑️ RESETEAR TODO EL SISTEMA
             </button>
         </div>
