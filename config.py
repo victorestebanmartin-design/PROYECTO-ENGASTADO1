@@ -30,3 +30,17 @@ class Config:
     PROYECTOS_FILE = os.path.join(DATA_DIR, 'proyectos_carros.json')
     BONOS_DIR = os.path.join(DATA_DIR, 'bonos')
     NUM_CARROS = 6  # Número de carros disponibles
+    
+    # Configuración de impresora Zebra GK420T
+    PRINTER_ENABLED = os.environ.get('PRINTER_ENABLED', 'True').lower() == 'true'
+    PRINTER_NAME = os.environ.get('PRINTER_NAME', 'ZebraGK420T')
+    PRINTER_SIMULATION_MODE = os.environ.get('PRINTER_SIMULATION_MODE', 'True').lower() == 'true'
+    PRINTER_SIMULATION_DIR = os.path.join(DATA_DIR, 'etiquetas_simuladas')
+    PRINTER_PENDING_FILE = os.path.join(DATA_DIR, 'etiquetas_pendientes.json')
+    PRINTER_RETRY_ATTEMPTS = int(os.environ.get('PRINTER_RETRY_ATTEMPTS', '3'))
+    PRINTER_TIMEOUT = int(os.environ.get('PRINTER_TIMEOUT', '10'))
+    
+    # Configuración de etiquetas
+    LABELS_PER_CARRO = int(os.environ.get('LABELS_PER_CARRO', '2'))  # 1 o 2 etiquetas por carro
+    PRINT_ON_BONO_GENERATION = os.environ.get('PRINT_ON_BONO_GENERATION', 'True').lower() == 'true'
+    PRINT_ON_CARRO_COMPLETION = os.environ.get('PRINT_ON_CARRO_COMPLETION', 'True').lower() == 'true'

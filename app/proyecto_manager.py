@@ -217,6 +217,11 @@ class ProyectoManager:
         }
         
         self.guardar_proyectos()
+        
+        # IMPRESIÓN DE ETIQUETAS: Imprimir etiquetas para cada carro
+        if Config.PRINT_ON_BONO_GENERATION:
+            self._imprimir_etiquetas_bono(nombre_bono, carros_ocupados)
+        
         return self.proyectos['bonos'][nombre_bono], None
     
     def _actualizar_estado_ordenes(self, numeros_ordenes, nuevo_estado, nombre_bono=None):
@@ -317,6 +322,33 @@ class ProyectoManager:
         if terminal not in bono['progreso_por_carro'][str(carro)]['operarios']:
             bono['progreso_por_carro'][str(carro)]['operarios'].append(terminal)
         
+        # VERIFICAR SI ESTE CARRO SE ACABA DE COMPLETAR (para imprimir etiqueta)
+        carro_recien_completado = False
+        if terminales_proyecto:
+            # Obtener información del carro para verificar si está completo
+            carro_info = None
+            for c in bono['carros']:
+                if c['carro'] == carro:
+                    carro_info = c
+                    break
+            
+            if carro_info:
+                proyecto_id = carro_info['proyecto_id']
+                proyecto = self.obtener_proyecto(proyecto_id)
+                
+                # Si el proyecto existe y podemos obtener total de terminales
+                if proyecto:
+                    # Verificar si se completó en este scan
+                    terminales_completos = len(bono['progreso_por_carro'][str(carro)]['terminales_completados'])
+                    
+                    # Marcar como recién completado si no tenía el flag y ahora tiene todos
+                    if not bono['progreso_por_carro'][str(carro)].get('finalizado', False):
+                        # Por ahora asumir que está completo si se envió terminales_proyecto
+                        # En el futuro se puede comparar con total del Excel
+                        carro_recien_completado = True
+                        bono['progreso_por_carro'][str(carro)]['finalizado'] = True
+                        bono['progreso_por_carro'][str(carro)]['fecha_finalizacion'] = datetime.now().isoformat()
+        
         # Actualizar estado de órdenes a "engastando" cuando se empieza a trabajar
         ordenes_bono = bono.get('ordenes', [])
         if ordenes_bono:
@@ -340,6 +372,21 @@ class ProyectoManager:
             self._actualizar_estado_ordenes(ordenes_bono, 'finalizado')
         
         self.guardar_proyectos()
+        
+        # IMPRIMIR ETIQUETA DE FINALIZACIÓN si el carro se acaba de completar
+        if carro_recien_completado and Config.PRINT_ON_CARRO_COMPLETION:
+            terminales_completados_count = len(bono['progreso_por_carro'][str(carro)]['terminales_completados'])
+            proyecto_nombre = carro_info.get('proyecto_nombre', '') if carro_info else None
+            
+            self._imprimir_etiqueta_finalizacion(
+                nombre_bono=nombre_bono,
+                carro=carro,
+                operario=terminal,
+                terminales_completados=terminales_completados_count,
+                terminales_totales=terminales_completados_count,  # Por ahora usar el mismo valor
+                proyecto_nombre=proyecto_nombre
+            )
+        
         return True
     
     def _actualizar_estado_ordenes_si_necesario(self, numeros_ordenes, estado_actual, nuevo_estado):
@@ -468,6 +515,119 @@ class ProyectoManager:
         
         self.guardar_proyectos()
         return proyecto
+    
+    def _imprimir_etiquetas_bono(self, nombre_bono, carros_ocupados):
+        """
+        Imprimir etiquetas para todos los carros del bono
+        Se imprimen LABELS_PER_CARRO etiquetas por cada carro (config: 2)
+        """
+        try:
+            from app.printer_manager import PrinterManager
+            from app.zpl_templates import ZPLTemplates
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            printer = PrinterManager(Config)
+            
+            logger.info(f"Iniciando impresión de etiquetas para bono {nombre_bono}")
+            
+            for carro_info in carros_ocupados:
+                carro = carro_info['carro']
+                proyecto_nombre = carro_info['proyecto_nombre']
+                
+                # Parsear número de orden y código de corte del nombre del proyecto
+                if ' - ' in proyecto_nombre:
+                    partes = proyecto_nombre.split(' - ', 1)
+                    numero_orden = partes[0]
+                    codigo_corte = partes[1]
+                else:
+                    numero_orden = "N/A"
+                    codigo_corte = proyecto_nombre
+                
+                # Obtener proyecto completo
+                proyecto = self.obtener_proyecto(carro_info['proyecto_id'])
+                cantidad_terminales = len(proyecto.get('terminales_completados', [])) if proyecto else 0
+                
+                # Metadatos para el registro
+                metadata = {
+                    'tipo': 'asignacion',
+                    'bono': nombre_bono,
+                    'carro': carro,
+                    'orden': numero_orden,
+                    'codigo_corte': codigo_corte,
+                    'proyecto': proyecto_nombre
+                }
+                
+                # PRIMERA ETIQUETA: Asignación completa
+                zpl_asignacion = ZPLTemplates.etiqueta_asignacion_carro(
+                    carro=carro,
+                    orden=numero_orden,
+                    codigo_corte=codigo_corte,
+                    proyecto=proyecto_nombre,
+                    cantidad_terminales=cantidad_terminales
+                )
+                
+                resultado = printer.print_zpl(zpl_asignacion, metadata)
+                logger.info(f"Etiqueta asignación Carro {carro}: {resultado['message']}")
+                
+                # SEGUNDA ETIQUETA: Duplicado
+                if Config.LABELS_PER_CARRO >= 2:
+                    metadata_dup = metadata.copy()
+                    metadata_dup['tipo'] = 'asignacion_duplicado'
+                    
+                    zpl_duplicado = ZPLTemplates.etiqueta_duplicada(
+                        carro=carro,
+                        orden=numero_orden,
+                        codigo_corte=codigo_corte
+                    )
+                    
+                    resultado_dup = printer.print_zpl(zpl_duplicado, metadata_dup)
+                    logger.info(f"Etiqueta duplicado Carro {carro}: {resultado_dup['message']}")
+            
+            logger.info(f"Finalizada impresión de etiquetas para bono {nombre_bono}")
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error al imprimir etiquetas del bono: {e}")
+    
+    def _imprimir_etiqueta_finalizacion(self, nombre_bono, carro, operario, 
+                                       terminales_completados, terminales_totales, proyecto_nombre=None):
+        """
+        Imprimir etiqueta de finalización cuando un carro se completa
+        """
+        try:
+            from app.printer_manager import PrinterManager
+            from app.zpl_templates import ZPLTemplates
+            import logging
+            
+            logger = logging.getLogger(__name__)
+            printer = PrinterManager(Config)
+            
+            metadata = {
+                'tipo': 'finalizacion',
+                'bono': nombre_bono,
+                'carro': carro,
+                'operario': operario,
+                'terminales': f"{terminales_completados}/{terminales_totales}"
+            }
+            
+            zpl = ZPLTemplates.etiqueta_finalizacion_carro(
+                carro=carro,
+                nombre_bono=nombre_bono,
+                operario=operario,
+                terminales_completados=terminales_completados,
+                terminales_totales=terminales_totales,
+                proyecto=proyecto_nombre
+            )
+            
+            resultado = printer.print_zpl(zpl, metadata)
+            logger.info(f"Etiqueta finalización Carro {carro}: {resultado['message']}")
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error al imprimir etiqueta de finalización: {e}")
 
 # Instancia global
 proyecto_manager = ProyectoManager()

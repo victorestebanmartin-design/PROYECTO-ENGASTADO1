@@ -122,6 +122,46 @@
             </div>
         </div>
 
+        <!-- Sección: Control de Impresora Zebra -->
+        <div class="card">
+            <h2>🖨️ Control de Impresora Zebra GK420T</h2>
+            <p class="instruccion">Monitoreo y control de la impresora de etiquetas</p>
+            
+            <div class="printer-controls">
+                <button onclick="verificarEstadoImpresora()" class="btn-secondary">
+                    🔍 Verificar Estado
+                </button>
+                
+                <button onclick="imprimirPrueba()" class="btn-primary" style="margin-left: 10px;">
+                    🧪 Imprimir Prueba
+                </button>
+                
+                <button onclick="listarEtiquetasSimuladas()" class="btn-secondary" style="margin-left: 10px;">
+                    📋 Ver Etiquetas Simuladas
+                </button>
+            </div>
+            
+            <div id="printer-status" class="printer-status-container" style="margin-top: 20px;">
+                <p class="text-muted">Haz clic en "Verificar Estado" para ver información de la impresora</p>
+            </div>
+            
+            <div id="printer-simulated" class="printer-simulated-container" style="margin-top: 20px; display: none;">
+                <h3>Etiquetas Simuladas</h3>
+                <div id="simulated-list"></div>
+                <button onclick="limpiarEtiquetasSimuladas()" class="btn-danger" style="margin-top: 10px;">
+                    🗑️ Limpiar Todas
+                </button>
+            </div>
+            
+            <div id="printer-pending" class="printer-pending-container" style="margin-top: 20px; display: none;">
+                <h3>Etiquetas Pendientes</h3>
+                <div id="pending-list"></div>
+                <button onclick="reintentarPendientes()" class="btn-primary" style="margin-top: 10px;">
+                    🔄 Reintentar Todas
+                </button>
+            </div>
+        </div>
+
         <!-- Sección: Actualización del Sistema -->
         <div class="card">
             <h2>🔄 Actualización del Sistema</h2>

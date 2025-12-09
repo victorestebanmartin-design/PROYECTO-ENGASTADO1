@@ -784,7 +784,7 @@ async function actualizarSistema() {
             }
         } else {
             statusDiv.className = 'mensaje error';
-            statusDiv.innerHTML = `
+                statusDiv.innerHTML = `
                 <strong>❌ Error al actualizar</strong><br>
                 ${data.message}
             `;
@@ -795,3 +795,241 @@ async function actualizarSistema() {
         statusDiv.textContent = '❌ Error al actualizar el sistema';
     }
 }
+
+
+// ============================================================================
+// FUNCIONES DE CONTROL DE IMPRESORA ZEBRA
+// ============================================================================
+
+/**
+ * Verificar estado de la impresora
+ */
+async function verificarEstadoImpresora() {
+    const statusContainer = document.getElementById('printer-status');
+    
+    try {
+        statusContainer.innerHTML = '<p class="text-muted">Verificando estado...</p>';
+        
+        const response = await fetch('/api/printer/status');
+        const data = await response.json();
+        
+        if (data.success) {
+            let html = '<div class="printer-status-info">';
+            html += `<h4>Estado de Impresora</h4>`;
+            html += `<p><strong>Modo:</strong> ${data.mode}</p>`;
+            html += `<p><strong>Estado:</strong> ${data.status}</p>`;
+            html += `<p><strong>Disponible:</strong> ${data.available ? '✅ Sí' : '❌ No'}</p>`;
+            html += `<p>${data.message}</p>`;
+            
+            if (data.simulation_dir) {
+                html += `<p><strong>Directorio simulación:</strong> ${data.simulation_dir}</p>`;
+                html += `<p><strong>Etiquetas simuladas:</strong> ${data.simulated_labels || 0}</p>`;
+            }
+            
+            if (data.has_paper !== undefined) {
+                html += `<p><strong>Papel:</strong> ${data.has_paper ? '✅ OK' : '❌ Sin papel'}</p>`;
+            }
+            
+            html += '</div>';
+            statusContainer.innerHTML = html;
+            
+            // Cargar etiquetas pendientes si hay
+            cargarEtiquetasPendientes();
+            
+        } else {
+            statusContainer.innerHTML = `<p class="mensaje error">${data.message}</p>`;
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        statusContainer.innerHTML = '<p class="mensaje error">Error al verificar estado</p>';
+    }
+}
+
+/**
+ * Imprimir etiqueta de prueba
+ */
+async function imprimirPrueba() {
+    if (!confirm('¿Imprimir etiqueta de prueba?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/printer/reprint', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tipo: 'test'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            if (data.file_path) {
+                alert('Archivo guardado en: ' + data.file_path);
+            }
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al imprimir prueba');
+    }
+}
+
+/**
+ * Listar etiquetas simuladas
+ */
+async function listarEtiquetasSimuladas() {
+    const container = document.getElementById('printer-simulated');
+    const listDiv = document.getElementById('simulated-list');
+    
+    try {
+        const response = await fetch('/api/printer/simulated-labels');
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.total === 0) {
+                listDiv.innerHTML = '<p class="text-muted">No hay etiquetas simuladas</p>';
+                container.style.display = 'none';
+            } else {
+                let html = '<table class="tabla"><thead><tr>';
+                html += '<th>Archivo</th><th>Fecha</th><th>Tamaño</th>';
+                html += '</tr></thead><tbody>';
+                
+                data.archivos.forEach(archivo => {
+                    const fecha = new Date(archivo.fecha).toLocaleString('es-ES');
+                    const tamano = (archivo.tamano / 1024).toFixed(2) + ' KB';
+                    
+                    html += '<tr>';
+                    html += `<td><code>${archivo.nombre}</code></td>`;
+                    html += `<td>${fecha}</td>`;
+                    html += `<td>${tamano}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                html += `<p><strong>Total:</strong> ${data.total} archivo(s)</p>`;
+                html += `<p class="text-muted">Ubicación: ${data.directorio}</p>`;
+                html += `<p class="text-muted">Puedes visualizar los archivos ZPL en: <a href="https://labelary.com/viewer.html" target="_blank">labelary.com/viewer.html</a></p>`;
+                
+                listDiv.innerHTML = html;
+                container.style.display = 'block';
+            }
+        } else {
+            listDiv.innerHTML = `<p class="mensaje error">${data.message}</p>`;
+            container.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        listDiv.innerHTML = '<p class="mensaje error">Error al listar etiquetas</p>';
+    }
+}
+
+/**
+ * Limpiar etiquetas simuladas
+ */
+async function limpiarEtiquetasSimuladas() {
+    if (!confirm('¿Eliminar TODAS las etiquetas simuladas? Esta acción no se puede deshacer.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/printer/clear-simulated', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ ${data.message}`);
+            listarEtiquetasSimuladas(); // Recargar lista
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al limpiar etiquetas');
+    }
+}
+
+/**
+ * Cargar etiquetas pendientes de impresión
+ */
+async function cargarEtiquetasPendientes() {
+    const container = document.getElementById('printer-pending');
+    const listDiv = document.getElementById('pending-list');
+    
+    try {
+        const response = await fetch('/api/printer/pending');
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.total === 0) {
+                container.style.display = 'none';
+            } else {
+                let html = '<table class="tabla"><thead><tr>';
+                html += '<th>Tipo</th><th>Detalles</th><th>Error</th><th>Intentos</th>';
+                html += '</tr></thead><tbody>';
+                
+                data.pendientes.forEach(pendiente => {
+                    const meta = pendiente.metadata || {};
+                    const detalles = `Bono: ${meta.bono || 'N/A'}, Carro: ${meta.carro || 'N/A'}`;
+                    
+                    html += '<tr>';
+                    html += `<td>${meta.tipo || 'N/A'}</td>`;
+                    html += `<td>${detalles}</td>`;
+                    html += `<td class="text-error">${pendiente.error}</td>`;
+                    html += `<td>${pendiente.intentos}</td>`;
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table>';
+                html += `<p class="mensaje warning">⚠️ Hay ${data.total} etiqueta(s) pendiente(s) de impresión</p>`;
+                
+                listDiv.innerHTML = html;
+                container.style.display = 'block';
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+/**
+ * Reintentar imprimir etiquetas pendientes
+ */
+async function reintentarPendientes() {
+    if (!confirm('¿Reintentar imprimir todas las etiquetas pendientes?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/printer/retry-pending', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            let mensaje = `Procesadas: ${data.processed}\n`;
+            mensaje += `Exitosas: ${data.successful}\n`;
+            mensaje += `Fallidas: ${data.failed}\n`;
+            mensaje += `Pendientes restantes: ${data.remaining}`;
+            
+            alert('✅ ' + mensaje);
+            
+            // Recargar listas
+            verificarEstadoImpresora();
+        } else {
+            alert('❌ Error: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error al reintentar impresiones');
+    }
+}
+

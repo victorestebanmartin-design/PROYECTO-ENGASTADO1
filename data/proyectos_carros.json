@@ -139,15 +139,75 @@
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
+    },
+    {
+      "id": 15,
+      "nombre": "TEST001 - PRUEBA-A",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.276751",
+      "carro_asignado": 1,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 16,
+      "nombre": "TEST002 - PRUEBA-B",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.286130",
+      "carro_asignado": 2,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 17,
+      "nombre": "TEST003 - PRUEBA-C",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.295370",
+      "carro_asignado": 3,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 18,
+      "nombre": "TEST004 - PRUEBA-D",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.306329",
+      "carro_asignado": 4,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 19,
+      "nombre": "TEST005 - PRUEBA-E",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.315635",
+      "carro_asignado": 5,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 20,
+      "nombre": "TEST006 - PRUEBA-F",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "fecha_carga": "2025-12-09T14:41:07.332354",
+      "carro_asignado": 6,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
     }
   ],
   "carros": {
-    "1": null,
-    "2": null,
-    "3": null,
-    "4": null,
-    "5": null,
-    "6": null
+    "1": 15,
+    "2": 16,
+    "3": 17,
+    "4": 18,
+    "5": 19,
+    "6": 20
   },
   "bonos": {
     "20251201_1": {
@@ -656,6 +716,58 @@
       "fecha_generacion": "2025-12-06T09:02:08.435740",
       "estado": "activo",
       "num_cortes": 1
+    },
+    "BONO-IMPRESORA-TEST": {
+      "nombre": "BONO-IMPRESORA-TEST",
+      "carros": [
+        {
+          "carro": 1,
+          "proyecto_id": 15,
+          "proyecto_nombre": "TEST001 - PRUEBA-A",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        },
+        {
+          "carro": 2,
+          "proyecto_id": 16,
+          "proyecto_nombre": "TEST002 - PRUEBA-B",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        },
+        {
+          "carro": 3,
+          "proyecto_id": 17,
+          "proyecto_nombre": "TEST003 - PRUEBA-C",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        },
+        {
+          "carro": 4,
+          "proyecto_id": 18,
+          "proyecto_nombre": "TEST004 - PRUEBA-D",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        },
+        {
+          "carro": 5,
+          "proyecto_id": 19,
+          "proyecto_nombre": "TEST005 - PRUEBA-E",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        },
+        {
+          "carro": 6,
+          "proyecto_id": 20,
+          "proyecto_nombre": "TEST006 - PRUEBA-F",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx"
+        }
+      ],
+      "ordenes": [
+        "TEST001",
+        "TEST002",
+        "TEST003",
+        "TEST004",
+        "TEST005",
+        "TEST006"
+      ],
+      "fecha_generacion": "2025-12-09T14:41:50.340754",
+      "estado": "activo",
+      "num_cortes": 6
     }
   }
 }

@@ -1769,3 +1769,286 @@ def actualizar_orden(orden_id):
             'success': False,
             'message': f'Error al actualizar la orden: {str(e)}'
         })
+
+
+# ============================================================================
+# ENDPOINTS DE IMPRESORA ZEBRA
+# ============================================================================
+
+@bp.route('/api/printer/status', methods=['GET'])
+def printer_status():
+    """
+    Obtener estado de la impresora Zebra
+    
+    Returns:
+        JSON con información de estado:
+        - available: bool
+        - status: str (idle/printing/offline/simulation/error)
+        - mode: str (Producción/Simulación)
+        - message: str
+        - has_paper: bool (solo en producción)
+        - simulated_labels: int (solo en simulación)
+    """
+    try:
+        from app.printer_manager import PrinterManager
+        from config import Config
+        
+        printer = PrinterManager(Config)
+        status = printer.get_printer_status()
+        
+        return jsonify({
+            'success': True,
+            **status
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al obtener estado: {str(e)}'
+        })
+
+
+@bp.route('/api/printer/pending', methods=['GET'])
+def printer_pending_labels():
+    """
+    Obtener lista de etiquetas pendientes de impresión
+    
+    Returns:
+        JSON con lista de etiquetas que fallaron al imprimir
+    """
+    try:
+        from app.printer_manager import PrinterManager
+        from config import Config
+        
+        printer = PrinterManager(Config)
+        pendientes = printer.get_pending_labels()
+        
+        return jsonify({
+            'success': True,
+            'pendientes': pendientes,
+            'total': len(pendientes)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al obtener pendientes: {str(e)}'
+        })
+
+
+@bp.route('/api/printer/reprint', methods=['POST'])
+def printer_reprint():
+    """
+    Reimprimir una etiqueta manualmente
+    
+    Body JSON:
+        {
+            "tipo": "asignacion" | "finalizacion" | "test",
+            "bono": "nombre_bono" (opcional),
+            "carro": 1-6,
+            "orden": "numero_orden" (para asignación),
+            "codigo_corte": "codigo" (para asignación),
+            "proyecto": "nombre_proyecto" (opcional),
+            "operario": "Terminal X" (para finalización),
+            "terminales_completados": int (para finalización),
+            "terminales_totales": int (para finalización)
+        }
+    
+    Returns:
+        JSON con resultado de la impresión
+    """
+    try:
+        from app.printer_manager import PrinterManager
+        from app.zpl_templates import ZPLTemplates
+        from config import Config
+        
+        data = request.json
+        tipo = data.get('tipo')
+        
+        if not tipo:
+            return jsonify({
+                'success': False,
+                'message': 'Falta especificar el tipo de etiqueta'
+            })
+        
+        printer = PrinterManager(Config)
+        zpl = None
+        metadata = {'tipo': tipo}
+        
+        if tipo == 'test':
+            zpl = ZPLTemplates.etiqueta_test()
+            metadata['descripcion'] = 'Etiqueta de prueba'
+            
+        elif tipo == 'asignacion':
+            carro = data.get('carro')
+            orden = data.get('orden')
+            codigo_corte = data.get('codigo_corte')
+            proyecto = data.get('proyecto', '')
+            cantidad_terminales = data.get('cantidad_terminales', 0)
+            
+            if not all([carro, orden, codigo_corte]):
+                return jsonify({
+                    'success': False,
+                    'message': 'Faltan datos para etiqueta de asignación (carro, orden, codigo_corte)'
+                })
+            
+            zpl = ZPLTemplates.etiqueta_asignacion_carro(
+                carro=int(carro),
+                orden=orden,
+                codigo_corte=codigo_corte,
+                proyecto=proyecto,
+                cantidad_terminales=int(cantidad_terminales)
+            )
+            
+            metadata.update({
+                'bono': data.get('bono'),
+                'carro': carro,
+                'orden': orden
+            })
+            
+        elif tipo == 'finalizacion':
+            carro = data.get('carro')
+            nombre_bono = data.get('bono')
+            operario = data.get('operario')
+            terminales_completados = data.get('terminales_completados', 0)
+            terminales_totales = data.get('terminales_totales', 0)
+            proyecto = data.get('proyecto')
+            
+            if not all([carro, nombre_bono, operario]):
+                return jsonify({
+                    'success': False,
+                    'message': 'Faltan datos para etiqueta de finalización (carro, bono, operario)'
+                })
+            
+            zpl = ZPLTemplates.etiqueta_finalizacion_carro(
+                carro=int(carro),
+                nombre_bono=nombre_bono,
+                operario=operario,
+                terminales_completados=int(terminales_completados),
+                terminales_totales=int(terminales_totales),
+                proyecto=proyecto
+            )
+            
+            metadata.update({
+                'bono': nombre_bono,
+                'carro': carro,
+                'operario': operario
+            })
+            
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Tipo de etiqueta no válido: {tipo}'
+            })
+        
+        # Imprimir
+        resultado = printer.print_zpl(zpl, metadata)
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al reimprimir: {str(e)}'
+        })
+
+
+@bp.route('/api/printer/retry-pending', methods=['POST'])
+def printer_retry_pending():
+    """
+    Reintentar imprimir todas las etiquetas pendientes
+    
+    Returns:
+        JSON con resumen de resultados
+    """
+    try:
+        from app.printer_manager import PrinterManager
+        from config import Config
+        
+        printer = PrinterManager(Config)
+        resultado = printer.retry_pending_labels()
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al reintentar pendientes: {str(e)}'
+        })
+
+
+@bp.route('/api/printer/simulated-labels', methods=['GET'])
+def printer_simulated_labels():
+    """
+    Obtener lista de etiquetas simuladas (archivos ZPL guardados)
+    
+    Returns:
+        JSON con lista de archivos de simulación
+    """
+    try:
+        from config import Config
+        import os
+        from datetime import datetime
+        
+        sim_dir = Config.PRINTER_SIMULATION_DIR
+        
+        if not os.path.exists(sim_dir):
+            return jsonify({
+                'success': True,
+                'archivos': [],
+                'total': 0
+            })
+        
+        archivos = []
+        for filename in os.listdir(sim_dir):
+            if filename.endswith('.zpl'):
+                filepath = os.path.join(sim_dir, filename)
+                stat = os.stat(filepath)
+                
+                archivos.append({
+                    'nombre': filename,
+                    'ruta': filepath,
+                    'tamano': stat.st_size,
+                    'fecha': datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+        
+        # Ordenar por fecha descendente
+        archivos.sort(key=lambda x: x['fecha'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'archivos': archivos,
+            'total': len(archivos),
+            'directorio': sim_dir
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al listar etiquetas simuladas: {str(e)}'
+        })
+
+
+@bp.route('/api/printer/clear-simulated', methods=['POST'])
+def printer_clear_simulated():
+    """
+    Limpiar todas las etiquetas simuladas
+    
+    Returns:
+        JSON con resultado de la operación
+    """
+    try:
+        from app.printer_manager import PrinterManager
+        from config import Config
+        
+        printer = PrinterManager(Config)
+        resultado = printer.clear_simulated_labels()
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al limpiar etiquetas: {str(e)}'
+        })
+
