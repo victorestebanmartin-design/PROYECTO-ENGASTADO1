@@ -15,6 +15,7 @@ let carroActualIndex = 0; // Índice del carro actual en proceso
 let terminalActual = null; // Terminal en el que estamos trabajando
 let terminalesCompletados = []; // Lista de terminales ya completados
 let paquetesActuales = []; // Paquetes del carro actual
+let gruposEtiquetasCache = null; // Cache de grupos de etiquetas
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
@@ -30,6 +31,63 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+/**
+ * Cargar grupos de etiquetas desde el JSON generado
+ */
+async function cargarGruposEtiquetas() {
+    // Si ya está en cache, retornar
+    if (gruposEtiquetasCache) {
+        return gruposEtiquetasCache;
+    }
+    
+    try {
+        // Si hay un bono activo, cargar etiquetas de todos los archivos del bono
+        if (window.bonoActual && window.bonoActual.nombre) {
+            const response = await fetch(`/api/etiquetas/grupos_bono/${encodeURIComponent(window.bonoActual.nombre)}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    gruposEtiquetasCache = data.grupos || [];
+                    console.log(`✅ Etiquetas cargadas del bono (${data.archivos_procesados} archivos):`, gruposEtiquetasCache.length);
+                    return gruposEtiquetasCache;
+                }
+            }
+        } else {
+            // Fallback: cargar desde el JSON único (para compatibilidad)
+            const response = await fetch('/api/etiquetas/grupos_json');
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success) {
+                    gruposEtiquetasCache = data.grupos || [];
+                    console.log('✅ Etiquetas cargadas:', gruposEtiquetasCache.length);
+                    return gruposEtiquetasCache;
+                }
+            } else {
+                console.log('⚠️ No se encontró archivo de etiquetas');
+            }
+        }
+    } catch (error) {
+        console.log('⚠️ Error al cargar etiquetas:', error);
+    }
+    return [];
+}
+
+/**
+ * Obtener número de etiqueta para un elemento específico
+ */
+function obtenerNumeroEtiqueta(codCable, elemento, gruposEtiquetas) {
+    if (!gruposEtiquetas || gruposEtiquetas.length === 0) {
+        return null;
+    }
+    
+    // Buscar en los grupos de etiquetas
+    const grupo = gruposEtiquetas.find(g => 
+        g.cod_cable === codCable && g.elemento === elemento
+    );
+    
+    return grupo ? grupo.numero_etiqueta : null;
+}
 
 /**
  * Mostrar bonos disponibles
@@ -145,7 +203,11 @@ async function cargarBono() {
         
         if (data.success) {
             bonoActual = data.bono;
+            window.bonoActual = data.bono; // También en window para acceso global
             carrosDelBono = data.bono.carros; // Guardar carros del bono
+            
+            // Limpiar cache de etiquetas para recargar con el nuevo bono
+            gruposEtiquetasCache = null;
             
             // Cargar progreso guardado
             await cargarProgresoDelBono(data.bono.nombre);
@@ -186,6 +248,19 @@ async function cargarPuestos() {
         const response = await fetch('/api/puestos');
         const data = await response.json();
         
+        // Obtener terminales que tienen datos en el bono actual
+        let terminalesConDatos = [];
+        try {
+            const responseTerminales = await fetch(`/api/bonos/${encodeURIComponent(bonoActual.nombre)}/terminales-disponibles`);
+            const dataTerminales = await responseTerminales.json();
+            
+            if (dataTerminales.success) {
+                terminalesConDatos = dataTerminales.terminales || [];
+            }
+        } catch (error) {
+            console.error('Error al obtener terminales disponibles:', error);
+        }
+        
         const puestosGrid = document.getElementById('puestos-grid');
         puestosGrid.innerHTML = '';
         
@@ -197,7 +272,13 @@ async function cargarPuestos() {
                 
                 if (puesto.maquinas && puesto.maquinas.length > 0) {
                     puesto.maquinas.filter(m => m.activo).forEach(maquina => {
-                        const terminalesAsignados = maquina.terminales_asignados || [];
+                        const todosTerminalesAsignados = maquina.terminales_asignados || [];
+                        
+                        // Filtrar solo terminales que tienen datos en el bono
+                        const terminalesAsignados = terminalesConDatos.length > 0 
+                            ? todosTerminalesAsignados.filter(t => terminalesConDatos.includes(t))
+                            : todosTerminalesAsignados;
+                        
                         totalTerminalesPuesto += terminalesAsignados.length;
                         
                         if (window.progresoCompleto) {
@@ -259,10 +340,29 @@ async function cargarMaquinas(puestoId) {
     const maquinasGrid = document.getElementById('maquinas-grid');
     maquinasGrid.innerHTML = '';
     
+    // Obtener terminales que tienen datos en el bono actual
+    let terminalesConDatos = [];
+    try {
+        const response = await fetch(`/api/bonos/${encodeURIComponent(bonoActual.nombre)}/terminales-disponibles`);
+        const data = await response.json();
+        
+        if (data.success) {
+            terminalesConDatos = data.terminales || [];
+        }
+    } catch (error) {
+        console.error('Error al obtener terminales disponibles:', error);
+    }
+    
     if (puestoSeleccionado.maquinas && puestoSeleccionado.maquinas.length > 0) {
         puestoSeleccionado.maquinas.filter(m => m.activo).forEach(maquina => {
             // Verificar cuántos terminales están completados
-            const terminalesAsignados = maquina.terminales_asignados || [];
+            const todosTerminalesAsignados = maquina.terminales_asignados || [];
+            
+            // Filtrar solo terminales que tienen datos en el bono
+            const terminalesAsignados = terminalesConDatos.length > 0 
+                ? todosTerminalesAsignados.filter(t => terminalesConDatos.includes(t))
+                : todosTerminalesAsignados;
+            
             const totalTerminales = terminalesAsignados.length;
             let terminalesCompletadosCount = 0;
             
@@ -302,7 +402,28 @@ async function cargarMaquinas(puestoId) {
  */
 async function seleccionarMaquina(maquina) {
     maquinaSeleccionada = maquina;
-    terminalesAsignados = maquina.terminales_asignados || [];
+    
+    // Obtener terminales que tienen datos en el bono
+    let terminalesConDatos = [];
+    try {
+        const response = await fetch(`/api/bonos/${encodeURIComponent(bonoActual.nombre)}/terminales-disponibles`);
+        const data = await response.json();
+        
+        if (data.success) {
+            terminalesConDatos = data.terminales || [];
+        }
+    } catch (error) {
+        console.error('Error al obtener terminales disponibles:', error);
+    }
+    
+    // Filtrar terminales asignados que tienen datos en el bono
+    const todosTerminalesAsignados = maquina.terminales_asignados || [];
+    if (terminalesConDatos.length > 0) {
+        terminalesAsignados = todosTerminalesAsignados.filter(t => terminalesConDatos.includes(t));
+    } else {
+        // Si no se pudo obtener los terminales con datos, usar todos los asignados
+        terminalesAsignados = todosTerminalesAsignados;
+    }
     
     // Cargar progreso solo para los terminales de esta máquina
     await cargarProgresoMaquina();
@@ -493,11 +614,24 @@ async function seleccionarTerminalTrabajo(terminal) {
 /**
  * Mostrar pantalla de paquetes para un terminal específico (igual que V2)
  */
-function mostrarPantallaPaquetesTerminal(terminal, grupos, elementosNecesarios) {
+async function mostrarPantallaPaquetesTerminal(terminal, grupos, elementosNecesarios) {
     const areaTrabajoV2 = document.getElementById('area-trabajo');
     
-    // Extraer elementos únicos igual que en V2
+    // Cargar grupos de etiquetas
+    const gruposEtiquetas = await cargarGruposEtiquetas();
+    
+    // Extraer elementos únicos y agregarles números de etiqueta
     const elementosUnicos = [...new Set(elementosNecesarios)];
+    const elementosConEtiquetas = elementosUnicos.map(elemento => {
+        // Buscar el cod_cable correcto para este elemento en los grupos
+        const grupoConElemento = grupos.find(g => g.elemento === elemento);
+        const codCable = grupoConElemento ? grupoConElemento.cod_cable : '';
+        const numeroEtiqueta = obtenerNumeroEtiqueta(codCable, elemento, gruposEtiquetas);
+        return {
+            elemento: elemento,
+            numeroEtiqueta: numeroEtiqueta
+        };
+    });
     
     areaTrabajoV2.innerHTML = `
         <div class="pantalla-preparacion">
@@ -510,15 +644,20 @@ function mostrarPantallaPaquetesTerminal(terminal, grupos, elementosNecesarios) 
             </div>
 
             <div class="instruccion-recoger">
-                <h3>🎯 Recoger los siguientes elementos (De Elemento):</h3>
+                <h3>🎯 Recoger los siguientes paquetes:</h3>
             </div>
 
             <div class="elementos-lista">
-                ${elementosUnicos.map(elemento => `
-                    <div class="elemento-item">
-                        <span class="elemento-numero">${elemento}</span>
+                ${elementosConEtiquetas.map(item => {
+                    const etiquetaHtml = item.numeroEtiqueta 
+                        ? `<span style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 1em; margin-right: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏷️ #${item.numeroEtiqueta}</span>`
+                        : '';
+                    return `
+                    <div class="elemento-item" style="display: flex; align-items: center; gap: 10px;">
+                        ${etiquetaHtml}
+                        <span class="elemento-numero">${item.elemento}</span>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
 
             <div class="resumen-grupos">
@@ -686,10 +825,107 @@ async function iniciarTrabajoV2() {
 }
 
 /**
+ * Buscar elemento por número de etiqueta
+ */
+async function buscarPorNumeroEtiqueta() {
+    const input = document.getElementById('input-numero-etiqueta');
+    const numeroEtiqueta = input.value.trim();
+    
+    if (!numeroEtiqueta) {
+        alert('⚠️ Por favor, ingresa un número de etiqueta');
+        input.focus();
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/etiquetas/buscar_por_numero', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ numero_etiqueta: parseInt(numeroEtiqueta) })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const grupo = data.grupo;
+            
+            // Mostrar mensaje de éxito
+            const mensaje = `✅ Etiqueta #${numeroEtiqueta} encontrada:\n\n` +
+                          `🔌 Elemento: ${grupo.elemento}\n` +
+                          `📟 Cable: ${grupo.cod_cable}\n` +
+                          `📏 Sección: ${grupo.seccion || 'N/A'}`;
+            
+            alert(mensaje);
+            
+            // Resaltar el elemento en la lista si existe
+            resaltarElementoEnLista(grupo.elemento);
+            
+            // Limpiar input
+            input.value = '';
+            input.focus();
+        } else {
+            alert(`❌ ${data.message}`);
+            input.focus();
+        }
+    } catch (error) {
+        console.error('Error al buscar etiqueta:', error);
+        alert('❌ Error al buscar etiqueta. Verifica la conexión.');
+    }
+}
+
+/**
+ * Resaltar elemento en la lista de elementos
+ */
+function resaltarElementoEnLista(elemento) {
+    // Buscar el elemento en la grid
+    const elementos = document.querySelectorAll('.elemento-paquete');
+    elementos.forEach(el => {
+        const codigo = el.querySelector('.elemento-codigo');
+        if (codigo && codigo.textContent === elemento) {
+            // Animación de resaltado
+            el.style.animation = 'pulse 1s ease-in-out 3';
+            el.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+            el.style.transform = 'scale(1.1)';
+            
+            // Scroll al elemento
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Restaurar después de 3 segundos
+            setTimeout(() => {
+                el.style.animation = '';
+                el.style.background = '';
+                el.style.transform = '';
+            }, 3000);
+        }
+    });
+}
+
+/**
  * Mostrar pantalla de paquetes para V3 (múltiples terminales)
  */
-function mostrarPantallaPaquetesV3(todosLosGrupos, elementosNecesarios) {
+async function mostrarPantallaPaquetesV3(todosLosGrupos, elementosNecesarios) {
     const areaTrabajoV2 = document.getElementById('area-trabajo');
+    
+    // Cargar grupos de etiquetas
+    const gruposEtiquetas = await cargarGruposEtiquetas();
+    
+    // Crear un mapa de elementos con sus números de etiqueta
+    const elementosConEtiquetas = elementosNecesarios.map(elemento => {
+        // Buscar el cod_cable correcto para este elemento en todosLosGrupos
+        let codCable = '';
+        for (const terminalData of todosLosGrupos) {
+            const grupoConElemento = terminalData.grupos.find(g => g.elemento === elemento);
+            if (grupoConElemento) {
+                codCable = grupoConElemento.cod_cable;
+                break;
+            }
+        }
+        const numeroEtiqueta = obtenerNumeroEtiqueta(codCable, elemento, gruposEtiquetas);
+        return {
+            elemento: elemento,
+            numeroEtiqueta: numeroEtiqueta
+        };
+    });
     
     // Contar total de terminales y grupos
     let totalGrupos = 0;
@@ -708,19 +944,51 @@ function mostrarPantallaPaquetesV3(todosLosGrupos, elementosNecesarios) {
                 </div>
             </div>
             
+            <div class="busqueda-rapida-etiquetas" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h3 style="color: white; margin: 0 0 15px 0; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.5em;">🏷️</span>
+                    <span>Búsqueda Rápida por Etiqueta</span>
+                </h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" 
+                           id="input-numero-etiqueta" 
+                           placeholder="Ej: 3" 
+                           min="1"
+                           style="flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                           onkeypress="if(event.key==='Enter') buscarPorNumeroEtiqueta()">
+                    <button onclick="buscarPorNumeroEtiqueta()" 
+                            style="padding: 12px 24px; font-size: 16px; background: white; color: #667eea; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.2s;"
+                            onmouseover="this.style.transform='scale(1.05)'"
+                            onmouseout="this.style.transform='scale(1)'">
+                        🔍 Buscar
+                    </button>
+                </div>
+                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 0.9em;">
+                    💡 Tip: Ingresa el número de la etiqueta física pegada en el paquete
+                </p>
+            </div>
+            
             <div class="instruccion-paquetes">
-                <h3>🎯 Recoger los siguientes elementos:</h3>
+                <h3>🎯 Paquetes a recoger (por etiqueta):</h3>
             </div>
             
             <div class="elementos-grid">
-                ${elementosNecesarios.map(elemento => `
+                ${elementosConEtiquetas.map(item => {
+                    const etiquetaHtml = item.numeroEtiqueta 
+                        ? `<span style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.95em; margin-right: 8px;">🏷️ #${item.numeroEtiqueta}</span>`
+                        : '';
+                    return `
                     <div class="elemento-paquete">
-                        <span class="elemento-codigo">${elemento}</span>
-                        <button class="btn-check" onclick="marcarElemento(this, '${elemento}')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            ${etiquetaHtml}
+                            <span class="elemento-codigo">${item.elemento}</span>
+                        </div>
+                        <button class="btn-check" onclick="marcarElemento(this, '${item.elemento}')">
                             ✓ Recogido
                         </button>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             </div>
             
             <div class="detalle-terminales">
@@ -1791,7 +2059,9 @@ async function cargarPaquetesDelCarro() {
         const data = await response.json();
         
         if (!data.success) {
-            mostrarMensaje('Error al cargar datos del carro', 'error');
+            console.error('Error del servidor:', data.message || 'Sin mensaje');
+            console.error('Datos completos:', data);
+            mostrarMensaje(data.message || 'Error al cargar datos del carro', 'error');
             return;
         }
         
@@ -1805,7 +2075,7 @@ async function cargarPaquetesDelCarro() {
         paquetesActuales = data.paquetes;
         
         // Mostrar modal de confirmación de paquetes
-        mostrarModalPaquetes(carro);
+        await mostrarModalPaquetes(carro);
         
     } catch (error) {
         console.error('Error:', error);
@@ -1816,7 +2086,16 @@ async function cargarPaquetesDelCarro() {
 /**
  * Mostrar modal con paquetes a coger del carro
  */
-function mostrarModalPaquetes(carro) {
+async function mostrarModalPaquetes(carro) {
+    // Cargar grupos de etiquetas
+    const gruposEtiquetas = await cargarGruposEtiquetas();
+    
+    // Obtener el cod_cable del proyecto
+    let codCableProyecto = '';
+    if (paquetesActuales.length > 0) {
+        codCableProyecto = paquetesActuales[0].cod_cable;
+    }
+    
     const modal = document.createElement('div');
     modal.id = 'modal-paquetes';
     modal.className = 'modal-overlay';
@@ -1865,10 +2144,16 @@ function mostrarModalPaquetes(carro) {
             
             <div class="paquetes-lista" style="margin: 20px 0;">
                 <h3 style="margin-bottom: 15px;">📦 Paquetes a coger del Carro ${carro.carro}:</h3>
-                ${paquetesActuales.map((paquete, index) => `
+                ${paquetesActuales.map((paquete, index) => {
+                    const numeroEtiqueta = obtenerNumeroEtiqueta(paquete.cod_cable, paquete.elemento, gruposEtiquetas);
+                    const etiquetaHtml = numeroEtiqueta 
+                        ? `<span style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 1.1em; margin-right: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏷️ #${numeroEtiqueta}</span>`
+                        : '';
+                    return `
                     <div style="background: #f8f9fa; border-left: 4px solid #0d6efd; border-radius: 8px; padding: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
                         <div style="flex: 1;">
-                            <div style="font-size: 1.3em; font-weight: bold; color: #212529; margin-bottom: 5px;">
+                            <div style="font-size: 1.3em; font-weight: bold; color: #212529; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+                                ${etiquetaHtml}
                                 ${paquete.elemento}
                             </div>
                             <div style="color: #6c757d; font-size: 0.85em;">
@@ -1880,7 +2165,7 @@ function mostrarModalPaquetes(carro) {
                             <div style="font-size: 0.85em; color: #6c757d;">cables</div>
                         </div>
                     </div>
-                `).join('')}
+                `}).join('')}
             </div>
             
             <div style="margin-top: 30px; text-align: center; border-top: 2px solid #dee2e6; padding-top: 20px;">
@@ -1959,7 +2244,7 @@ function confirmarPaquetesYComenzar() {
 /**
  * Mostrar paquete expandido con detalles de cables
  */
-function mostrarPaqueteExpandido() {
+async function mostrarPaqueteExpandido() {
     if (paqueteActualIndex >= paquetesActuales.length) {
         // Terminamos todos los paquetes de este carro
         paqueteCompletado();
@@ -1967,6 +2252,14 @@ function mostrarPaqueteExpandido() {
     }
     
     const paquete = paquetesActuales[paqueteActualIndex];
+    
+    // Cargar grupos de etiquetas y obtener número
+    const gruposEtiquetas = await cargarGruposEtiquetas();
+    const numeroEtiqueta = obtenerNumeroEtiqueta(paquete.cod_cable, paquete.elemento, gruposEtiquetas);
+    const etiquetaHtml = numeroEtiqueta 
+        ? `<span style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); color: white; padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2em; margin-bottom: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🏷️ #${numeroEtiqueta}</span>`
+        : '';
+    
     const cablesDeTerminal = paquete.cables_de_terminal || [];
     const cablesParaTerminal = paquete.cables_para_terminal || [];
     const cablesAmbos = paquete.cables_doble_terminal || [];
@@ -1979,6 +2272,7 @@ function mostrarPaqueteExpandido() {
                     <div style="font-size: 1.5em; font-weight: bold;">Terminal ${terminalActual}</div>
                     <div style="font-size: 1.1em; margin-top: 5px;">Paquete ${paqueteActualIndex + 1} de ${paquetesActuales.length}</div>
                 </div>
+                ${etiquetaHtml}
                 <h2 style="color: #212529; margin-bottom: 10px;">${paquete.elemento}</h2>
                 <div style="color: #6c757d; font-size: 1.1em;">Cable: ${paquete.cod_cable}</div>
             </div>
@@ -2224,18 +2518,23 @@ async function terminarTerminal() {
         terminalesCompletados.push(terminalActual);
     }
     
-    // Actualizar visualización de terminales
+    // Actualizar visualización de terminales inmediatamente
     mostrarTerminalesAsignados();
     
-    // Volver al área de selección
-    cargarAreaTrabajoV2();
+    // Forzar un repaint del DOM antes de continuar
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // Verificar si terminamos todos
     if (terminalesCompletados.length === terminalesAsignados.length) {
         mostrarMensaje('🎉 ¡Todos los terminales completados!', 'success');
-        mostrarResumenFinal();
+        // Esperar un poco más para que se vea la actualización visual antes de mostrar el resumen
+        setTimeout(() => {
+            mostrarResumenFinal();
+        }, 1000);
     } else {
         mostrarMensaje(`✅ Terminal ${terminalActual} completado. ${terminalesAsignados.length - terminalesCompletados.length} pendientes.`, 'success');
+        // Volver al área de selección solo si no terminamos todos
+        cargarAreaTrabajoV2();
     }
     
     terminalActual = null;
@@ -2245,20 +2544,156 @@ async function terminarTerminal() {
 /**
  * Mostrar resumen final
  */
-function mostrarResumenFinal() {
+async function mostrarResumenFinal() {
+    // Recargar el progreso completo del bono para tener datos actualizados
+    await cargarProgresoDelBono(bonoActual.nombre);
+    
+    // Obtener terminales con datos del bono
+    let terminalesConDatos = [];
+    try {
+        const response = await fetch(`/api/bonos/${encodeURIComponent(bonoActual.nombre)}/terminales-disponibles`);
+        const data = await response.json();
+        if (data.success) {
+            terminalesConDatos = data.terminales || [];
+        }
+    } catch (error) {
+        console.error('Error al obtener terminales disponibles:', error);
+    }
+    
+    // Contar terminales completados en TODO el bono (no solo esta máquina)
+    let totalTerminalesCompletadosBono = 0;
+    if (window.progresoCompleto && terminalesConDatos.length > 0) {
+        totalTerminalesCompletadosBono = terminalesConDatos.filter(terminal => {
+            return window.progresoCompleto[terminal] && window.progresoCompleto[terminal].estado === 'completado';
+        }).length;
+    }
+    
+    console.log(`📊 Progreso total del bono: ${totalTerminalesCompletadosBono}/${terminalesConDatos.length}`);
+    
+    // Verificar si TODO el bono está completo
+    if (totalTerminalesCompletadosBono >= terminalesConDatos.length && terminalesConDatos.length > 0) {
+        // ¡BONO COMPLETADO!
+        mostrarResumenBonoCompleto(terminalesConDatos.length);
+        return;
+    }
+    
+    // Verificar si quedan máquinas pendientes en este puesto
+    let terminalesPendientesEnPuesto = 0;
+    if (puestoSeleccionado && puestoSeleccionado.maquinas) {
+        puestoSeleccionado.maquinas.filter(m => m.activo).forEach(maquina => {
+            const todosTerminalesAsignados = maquina.terminales_asignados || [];
+            const terminalesAsignados = terminalesConDatos.length > 0 
+                ? todosTerminalesAsignados.filter(t => terminalesConDatos.includes(t))
+                : todosTerminalesAsignados;
+            
+            terminalesAsignados.forEach(terminal => {
+                const estaCompletado = window.progresoCompleto && 
+                                      window.progresoCompleto[terminal] && 
+                                      window.progresoCompleto[terminal].estado === 'completado';
+                if (!estaCompletado) {
+                    terminalesPendientesEnPuesto++;
+                }
+            });
+        });
+    }
+    
+    // Decidir el siguiente paso y el mensaje
+    let siguientePaso, textoBoton, iconoBoton;
+    if (terminalesPendientesEnPuesto > 0) {
+        siguientePaso = 'maquina';
+        textoBoton = '🔧 Seleccionar otra máquina';
+        iconoBoton = '🔧';
+    } else {
+        siguientePaso = 'puesto';
+        textoBoton = '🏭 Seleccionar otro puesto';
+        iconoBoton = '🏭';
+    }
+    
     const areaTrabajoV2 = document.getElementById('area-trabajo');
     areaTrabajoV2.innerHTML = `
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; border-radius: 15px; text-align: center;">
-            <div style="font-size: 4em; margin-bottom: 20px;">🎉</div>
+            <div style="font-size: 4em; margin-bottom: 20px;">${iconoBoton}</div>
             <h2 style="font-size: 2.5em; margin-bottom: 20px;">¡Trabajo Completado!</h2>
             <p style="font-size: 1.3em; margin-bottom: 30px;">
                 Has completado todos los terminales de <strong>${maquinaSeleccionada.nombre}</strong>
             </p>
             <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
                 <div style="font-size: 3em; font-weight: bold;">${terminalesCompletados.length}</div>
-                <div style="font-size: 1.2em;">Terminales procesados</div>
+                <div style="font-size: 1.2em;">Terminales procesados en esta máquina</div>
             </div>
-            <button onclick="window.location.href='/'" class="btn-primary" style="padding: 15px 40px; font-size: 1.2em; background: white; color: #667eea; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+            ${terminalesPendientesEnPuesto > 0 ? `
+                <p style="font-size: 1.1em; margin-bottom: 20px; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 8px;">
+                    ℹ️ Quedan <strong>${terminalesPendientesEnPuesto} terminales</strong> pendientes en otras máquinas de este puesto
+                </p>
+            ` : ''}
+            <button onclick="continuarDespuesDeCompletarMaquina('${siguientePaso}')" class="btn-primary" style="padding: 15px 40px; font-size: 1.2em; background: white; color: #667eea; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                ${textoBoton}
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Continuar después de completar una máquina
+ */
+async function continuarDespuesDeCompletarMaquina(siguientePaso) {
+    if (siguientePaso === 'maquina') {
+        // Recargar progreso antes de mostrar máquinas
+        await cargarProgresoMaquina();
+        
+        // Forzar repaint del DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Volver a selección de máquinas
+        document.getElementById('paso-trabajo').classList.add('hidden');
+        document.getElementById('paso-maquina').classList.remove('hidden');
+        await cargarMaquinas(puestoSeleccionado.id);
+        
+        // Esperar para que se vea la actualización antes de permitir interacción
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+    } else if (siguientePaso === 'puesto') {
+        // Recargar todo el progreso antes de mostrar puestos
+        await cargarProgresoDelBono(bonoActual.nombre);
+        
+        // Forzar repaint del DOM
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Volver a selección de puestos
+        document.getElementById('paso-trabajo').classList.add('hidden');
+        document.getElementById('paso-maquina').classList.add('hidden');
+        document.getElementById('paso-puesto').classList.remove('hidden');
+        await cargarPuestos();
+        
+        // Esperar para que se vea la actualización antes de permitir interacción
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+    } else {
+        // Volver al inicio
+        window.location.href = '/';
+    }
+}
+
+/**
+ * Mostrar resumen cuando el BONO COMPLETO está terminado
+ */
+function mostrarResumenBonoCompleto(totalTerminales) {
+    const areaTrabajoV2 = document.getElementById('area-trabajo');
+    areaTrabajoV2.innerHTML = `
+        <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 50px; border-radius: 15px; text-align: center;">
+            <div style="font-size: 5em; margin-bottom: 20px;">🎊🎉🎊</div>
+            <h2 style="font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">¡BONO COMPLETADO!</h2>
+            <p style="font-size: 1.5em; margin-bottom: 30px;">
+                Has terminado <strong>TODOS</strong> los trabajos del bono <strong>${bonoActual.nombre}</strong>
+            </p>
+            <div style="background: rgba(255,255,255,0.25); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
+                <div style="font-size: 4em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">${totalTerminales}</div>
+                <div style="font-size: 1.3em;">Terminales procesados en total</div>
+            </div>
+            <p style="font-size: 1.2em; margin-bottom: 30px; font-style: italic;">
+                ¡Excelente trabajo! 🏆
+            </p>
+            <button onclick="window.location.href='/'" class="btn-primary" style="padding: 20px 50px; font-size: 1.3em; background: white; color: #28a745; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
                 🏠 Volver al Inicio
             </button>
         </div>

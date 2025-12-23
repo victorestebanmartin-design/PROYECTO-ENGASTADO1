@@ -1046,6 +1046,7 @@ table tbody tr:hover {
 .version-proyectos h3 { color: #f97316; }
 .version-visualizacion h3 { color: #06b6d4; }
 .version-ordenes h3 { color: #059669; }
+.version-etiquetas h3 { color: #8b5cf6; }
 
 .btn-version {
     text-align: center;
@@ -1070,6 +1071,9 @@ table tbody tr:hover {
 
 .btn-version-ordenes { background: #059669; border-color: #059669; }
 .btn-version-ordenes:hover { background: #047857; }
+
+.btn-version-etiquetas { background: #8b5cf6; border-color: #8b5cf6; }
+.btn-version-etiquetas:hover { background: #7c3aed; }
 
 .landing-summary { margin-top: 28px; }
 .landing-summary-title { border: none; }

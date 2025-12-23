@@ -1,16 +1,16 @@
 {
   "cortes": [
     {
-      "codigo_barras": "ITALIA",
-      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS.xlsx",
-      "descripcion": "ITALIA APANTALLADOS",
-      "proyecto": ""
-    },
-    {
       "codigo_barras": "H0420724",
-      "archivo": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
       "descripcion": "PC CAB BADEN",
       "proyecto": "BADEN"
+    },
+    {
+      "codigo_barras": "H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "descripcion": "PC CORADIA ITALIA",
+      "proyecto": "CORADIA ITALIA"
     }
   ]
 }

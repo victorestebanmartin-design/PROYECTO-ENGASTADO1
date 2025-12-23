@@ -1851,3 +1851,31 @@
         flex-direction: column;
     }
 }
+
+/* ================================
+   Animaciones para búsqueda de etiquetas
+   ================================ */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 20px rgba(251, 191, 36, 0);
+    }
+}
+
+.busqueda-rapida-etiquetas input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+.busqueda-rapida-etiquetas button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.busqueda-rapida-etiquetas button:active {
+    transform: scale(0.98);
+}

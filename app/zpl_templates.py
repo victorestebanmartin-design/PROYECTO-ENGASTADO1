@@ -144,3 +144,85 @@ class ZPLTemplates:
 ^FO10,40^A0N,25,25^FD55mm x 15mm^FS
 ^FO10,70^A0N,20,20^FD432 x 118 dots^FS
 ^XZ"""
+
+
+def generar_etiquetas_a4(codigo_cable: str, elemento: str, descripcion: str = "", 
+                         terminal: str = "", cantidad: int = 65) -> str:
+    """
+    Generar etiquetas para imprimir en hoja A4 con 65 etiquetas troqueladas (5x13mm)
+    
+    Distribución típica en A4: 13 columnas x 5 filas = 65 etiquetas
+    Dimensiones etiqueta: 5mm ancho x 13mm alto @ 203 DPI
+    5mm = ~39 dots, 13mm = ~102 dots
+    
+    Args:
+        codigo_cable: Código del cable (ej: CC001)
+        elemento: Nombre del elemento
+        descripcion: Descripción del elemento (opcional)
+        terminal: Terminal asociado (opcional)
+        cantidad: Cantidad de etiquetas a generar (max 65)
+        
+    Returns:
+        Código ZPL para imprimir múltiples etiquetas en formato A4
+    """
+    # Dimensiones de etiqueta pequeña en dots (203 DPI)
+    ETIQUETA_ANCHO = 39   # 5mm
+    ETIQUETA_ALTO = 102    # 13mm
+    
+    # Espaciado entre etiquetas
+    ESPACIADO_H = 2  # dots entre columnas
+    ESPACIADO_V = 2  # dots entre filas
+    
+    # Márgenes de página A4
+    MARGEN_IZQ = 20   # dots desde el borde izquierdo
+    MARGEN_SUP = 20   # dots desde el borde superior
+    
+    # Distribución: 13 columnas x 5 filas
+    COLUMNAS = 13
+    FILAS = 5
+    
+    # Truncar textos para que quepan en etiqueta pequeña
+    codigo_truncado = codigo_cable[:6] if len(codigo_cable) > 6 else codigo_cable
+    elemento_truncado = elemento[:8] if len(elemento) > 8 else elemento
+    
+    # Iniciar documento ZPL
+    zpl = "^XA\n"
+    
+    # Configurar para formato A4 y modo de corte
+    zpl += "^PW832\n"  # Ancho de página A4 en 203 DPI (aproximadamente)
+    
+    etiquetas_generadas = 0
+    
+    for fila in range(FILAS):
+        for col in range(COLUMNAS):
+            if etiquetas_generadas >= cantidad:
+                break
+                
+            # Calcular posición X e Y de esta etiqueta
+            pos_x = MARGEN_IZQ + col * (ETIQUETA_ANCHO + ESPACIADO_H)
+            pos_y = MARGEN_SUP + fila * (ETIQUETA_ALTO + ESPACIADO_V)
+            
+            # Dibujar borde de etiqueta (opcional, para debug)
+            # zpl += f"^FO{pos_x},{pos_y}^GB{ETIQUETA_ANCHO},{ETIQUETA_ALTO},1^FS\n"
+            
+            # Contenido de la etiqueta (texto muy pequeño)
+            # Línea 1: Código de cable
+            zpl += f"^FO{pos_x+2},{pos_y+2}^A0N,12,12^FD{codigo_truncado}^FS\n"
+            
+            # Línea 2: Elemento
+            zpl += f"^FO{pos_x+2},{pos_y+18}^A0N,14,14^FD{elemento_truncado}^FS\n"
+            
+            # Línea 3: Terminal (si existe)
+            if terminal and terminal.strip():
+                terminal_truncado = terminal[:6] if len(terminal) > 6 else terminal
+                zpl += f"^FO{pos_x+2},{pos_y+34}^A0N,10,10^FD{terminal_truncado}^FS\n"
+            
+            etiquetas_generadas += 1
+        
+        if etiquetas_generadas >= cantidad:
+            break
+    
+    # Finalizar documento
+    zpl += "^XZ\n"
+    
+    return zpl

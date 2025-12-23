@@ -104,6 +104,36 @@
       "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
       "bono": "BONO-IMPRESORA-TEST",
       "fecha_inicio_bono": "2025-12-09T14:41:50.339896"
+    },
+    {
+      "id": "804ccab5-b096-48cb-a5dc-49651f63fcd2",
+      "codigo_corte": "H0420724",
+      "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004.xlsx",
+      "numero": "60245648",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0420724-60245648-1-20251212",
+      "cantidad": 1,
+      "fecha_entrega": "2025-12-12",
+      "prioridad": "urgente",
+      "estado": "en_bono",
+      "fecha_creacion": "2025-12-22T17:00:40.834363",
+      "bono": "20251222_2",
+      "fecha_inicio_bono": "2025-12-22T17:15:55.632572"
+    },
+    {
+      "id": "25c73ec4-0710-4a05-8255-8a04ac0e0135",
+      "codigo_corte": "ITALIA",
+      "archivo_excel": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS.xlsx",
+      "numero": "6024596",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: ITALIA-6024596-1-20251214",
+      "cantidad": 1,
+      "fecha_entrega": "2025-12-14",
+      "prioridad": "urgente",
+      "estado": "en_bono",
+      "fecha_creacion": "2025-12-22T17:01:48.066789",
+      "bono": "20251222_2",
+      "fecha_inicio_bono": "2025-12-22T17:15:55.632580"
     }
   ]
 }

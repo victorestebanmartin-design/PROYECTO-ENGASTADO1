@@ -427,3 +427,52 @@ class ExcelManager:
         
         # Ordenar alfabéticamente
         return sorted(list(terminales))
+
+    def buscar_elementos_por_codigo_cable(self, codigo_cable: str) -> List[Dict]:
+        """
+        Buscar todos los elementos (De Elemento) asociados a un código de cable específico
+        Retorna lista de diccionarios con: elemento, descripción, cantidad, terminal
+        """
+        if self.current_df is None:
+            return []
+        
+        codigo_cable_upper = str(codigo_cable).upper().strip()
+        
+        # Filtrar por código de cable
+        if 'Cod. cable' not in self.current_df.columns:
+            return []
+        
+        mask = self.current_df['Cod. cable'].astype(str).str.upper().str.strip() == codigo_cable_upper
+        df_filtrado = self.current_df[mask].copy()
+        
+        if df_filtrado.empty:
+            return []
+        
+        # Agrupar por 'De Elemento' y contar
+        elementos_dict = {}
+        
+        for _, row in df_filtrado.iterrows():
+            elemento = row.get('De Elemento', 'Sin elemento')
+            if pd.isna(elemento):
+                elemento = 'Sin elemento'
+            
+            elemento = str(elemento).strip()
+            
+            if elemento not in elementos_dict:
+                elementos_dict[elemento] = {
+                    'elemento': elemento,
+                    'descripcion': str(row.get('De Descripción', '')).strip() if not pd.isna(row.get('De Descripción')) else '',
+                    'terminal': str(row.get('De Terminal', '')).strip() if not pd.isna(row.get('De Terminal')) else '',
+                    'cantidad': 0
+                }
+            
+            elementos_dict[elemento]['cantidad'] += 1
+        
+        # Convertir a lista
+        elementos_lista = list(elementos_dict.values())
+        
+        # Ordenar por elemento
+        elementos_lista.sort(key=lambda x: x['elemento'])
+        
+        return elementos_lista
+

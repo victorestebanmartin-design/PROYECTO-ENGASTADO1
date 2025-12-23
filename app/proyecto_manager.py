@@ -2,6 +2,7 @@ import json
 import os
 from datetime import datetime
 from config import Config
+from app.excel_manager import ExcelManager
 
 class ProyectoManager:
     """Gestor de proyectos y asignación a carros"""
@@ -360,15 +361,54 @@ class ProyectoManager:
             bono['progreso'][terminal]['estado'] = 'completado'
         
         # Verificar si el bono está completamente terminado
-        todos_carros_completos = True
-        for carro_info in bono['carros']:
-            carro_num = str(carro_info['carro'])
-            if carro_num not in bono.get('progreso_por_carro', {}):
-                todos_carros_completos = False
-                break
+        # Para esto necesitamos obtener TODOS los terminales del bono desde los archivos Excel
+        try:
+            terminales_totales = set()
+            for carro in bono.get('carros', []):
+                archivo = carro.get('archivo_excel')
+                if not archivo:
+                    continue
+                
+                # Cargar Excel y extraer terminales
+                manager = ExcelManager(Config.UPLOAD_FOLDER, Config.CODIGOS_FILE)
+                if manager.cargar_excel(archivo):
+                    registros = manager.current_df.to_dict('records')
+                    for row in registros:
+                        de_terminal = str(row.get('De Terminal', '')).strip().upper()
+                        para_terminal = str(row.get('Para Terminal', '')).strip().upper()
+                        
+                        if de_terminal and de_terminal != 'S/T':
+                            terminales_totales.add(de_terminal)
+                        if para_terminal and para_terminal != 'S/T':
+                            terminales_totales.add(para_terminal)
+            
+            # Verificar si TODOS los terminales del bono están en progreso Y completados
+            todos_terminales_completados = False
+            if terminales_totales and bono.get('progreso'):
+                # Verificar que todos los terminales del Excel estén completados
+                terminales_en_progreso = set(bono['progreso'].keys())
+                
+                # Solo está completado si:
+                # 1. Todos los terminales del Excel están en progreso
+                # 2. Todos tienen estado 'completado'
+                if terminales_en_progreso >= terminales_totales:
+                    todos_completados = True
+                    for term in terminales_totales:
+                        if term not in bono['progreso'] or bono['progreso'][term].get('estado') != 'completado':
+                            todos_completados = False
+                            break
+                    todos_terminales_completados = todos_completados
+        except Exception as e:
+            print(f"Error al verificar terminales totales del bono: {e}")
+            todos_terminales_completados = False
         
-        # Si todos los carros están completos, marcar órdenes como finalizadas
-        if todos_carros_completos and ordenes_bono:
+        # Si todos los terminales están completados, actualizar estado del bono a completado
+        if todos_terminales_completados:
+            bono['estado'] = 'completado'
+            bono['fecha_finalizacion'] = datetime.now().isoformat()
+        
+        # Si todos los terminales están completados, marcar órdenes como finalizadas
+        if todos_terminales_completados and ordenes_bono:
             self._actualizar_estado_ordenes(ordenes_bono, 'finalizado')
         
         self.guardar_proyectos()

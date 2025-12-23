@@ -5,8 +5,13 @@ from flask import Blueprint, render_template, request, jsonify, current_app, red
 from werkzeug.utils import secure_filename
 import os
 import json
+import logging
+from datetime import datetime
+import pandas as pd
 from app.excel_manager import ExcelManager
 from app.proyecto_manager import proyecto_manager
+
+logger = logging.getLogger(__name__)
 
 bp = Blueprint('main', __name__)
 
@@ -97,6 +102,11 @@ def gestion_bonos():
 def registro_ordenes():
     """Página de registro de órdenes de producción"""
     return render_template('registro-ordenes.html')
+
+@bp.route('/etiquetas')
+def etiquetas():
+    """Página de generación de etiquetas para elementos de cortes"""
+    return render_template('etiquetas.html')
 
 @bp.route('/api/validar_codigo_corte', methods=['POST'])
 def validar_codigo_corte():
@@ -360,6 +370,9 @@ def add_corte():
     manager = get_excel_manager()
     
     if manager.add_corte(codigo_barras, archivo, descripcion, proyecto):
+        # Generar automáticamente los grupos de etiquetas para V3 y sección Etiquetas
+        generar_grupos_etiquetas_json(archivo)
+        
         return jsonify({
             'success': True,
             'message': 'Corte agregado correctamente'
@@ -459,10 +472,19 @@ def list_files():
     for filename in os.listdir(upload_folder):
         if allowed_file(filename):
             filepath = os.path.join(upload_folder, filename)
-            size = os.path.getsize(filepath)
+            file_size = os.path.getsize(filepath)
+            
+            # Formatear tamaño
+            if file_size < 1024:
+                size_str = f"{file_size} B"
+            elif file_size < 1024 * 1024:
+                size_str = f"{file_size / 1024:.1f} KB"
+            else:
+                size_str = f"{file_size / (1024 * 1024):.1f} MB"
+            
             files.append({
                 'nombre': filename,
-                'tamano': f"{size / 1024:.2f} KB"
+                'tamano': size_str
             })
     
     return jsonify({
@@ -531,6 +553,723 @@ def toggle_terminal_desactivado():
         'message': mensaje,
         'terminales': desactivados
     })
+
+# ================================
+# API ROUTES PARA ETIQUETAS
+# ================================
+
+@bp.route('/api/etiquetas/cargar_grupos', methods=['POST'])
+def cargar_grupos_etiquetas():
+    """Cargar grupos (cod.cable + elemento) de un archivo Excel para generar etiquetas"""
+    try:
+        data = request.get_json()
+        archivo = data.get('archivo', '').strip()
+        
+        if not archivo:
+            return jsonify({
+                'success': False,
+                'message': 'Archivo no especificado'
+            }), 400
+        
+        # Primero intentar cargar desde el JSON generado automáticamente
+        json_path = os.path.join(current_app.config['DATA_FOLDER'], 'grupos_etiquetas.json')
+        
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, 'r', encoding='utf-8') as f:
+                    data_json = json.load(f)
+                    
+                # Verificar si es el archivo correcto
+                if data_json.get('archivo') == archivo:
+                    return jsonify({
+                        'success': True,
+                        'grupos': data_json.get('grupos', []),
+                        'archivo': archivo,
+                        'codigo_corte': data_json.get('codigo_corte', ''),
+                        'total': data_json.get('total_grupos', 0),
+                        'fuente': 'cache'
+                    })
+            except Exception as e:
+                logger.warning(f"Error al leer grupos_etiquetas.json: {str(e)}")
+        
+        # Si no existe el JSON o es otro archivo, generar en tiempo real
+        manager = get_excel_manager()
+        
+        # Cargar el archivo Excel
+        if not manager.cargar_excel(archivo):
+            return jsonify({
+                'success': False,
+                'message': f'Error al cargar archivo: {archivo}'
+            }), 500
+        
+        # Obtener TODOS los datos del Excel
+        if manager.current_df is None:
+            return jsonify({
+                'success': False,
+                'message': 'No hay datos en el archivo'
+            }), 500
+        
+        # Convertir DataFrame a lista de diccionarios
+        todos_registros = manager.current_df.to_dict('records')
+        
+        # Agrupar por cod.cable + elemento
+        grupos_dict = agrupar_por_cod_cable_elemento(todos_registros)
+        
+        # Convertir a lista
+        grupos_lista = []
+        for clave, grupo in grupos_dict.items():
+            grupos_lista.append({
+                'cod_cable': grupo['cod_cable'],
+                'elemento': grupo['elemento'],
+                'descripcion': grupo['descripcion'],
+                'seccion': grupo['seccion'],
+                'longitud': grupo['longitud'],
+                'num_cables': grupo['num_cables'],
+                'num_terminales': grupo['num_terminales'],
+                'de_terminal': grupo['de_terminal']
+            })
+        
+        # Ordenar por cod_cable y elemento
+        grupos_lista.sort(key=lambda x: (x['cod_cable'], x['elemento']))
+        
+        # Filtrar solo grupos con sección
+        grupos_con_seccion = [g for g in grupos_lista if g.get('seccion') and str(g.get('seccion')).strip()]
+        
+        # Añadir numeración secuencial solo a grupos con sección
+        for i, grupo in enumerate(grupos_con_seccion, start=1):
+            grupo['numero_etiqueta'] = i
+        
+        # Obtener el código del corte desde codigos_cortes.json
+        codigo_corte = ""
+        try:
+            codigos_path = os.path.join(current_app.config['DATA_FOLDER'], 'codigos_cortes.json')
+            with open(codigos_path, 'r', encoding='utf-8') as f:
+                codigos_data = json.load(f)
+                for corte in codigos_data.get('cortes', []):
+                    if corte.get('archivo', '').upper() == archivo.upper():
+                        codigo_corte = corte.get('codigo_barras', '')
+                        break
+        except Exception as e:
+            logger.warning(f"No se pudo obtener código de corte para {archivo}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'grupos': grupos_con_seccion,
+            'archivo': archivo,
+            'codigo_corte': codigo_corte,
+            'total': len(grupos_con_seccion),
+            'fuente': 'generado'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al cargar grupos: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al cargar grupos: {str(e)}'
+        }), 500
+
+@bp.route('/api/etiquetas/buscar_por_numero', methods=['POST'])
+def buscar_etiqueta_por_numero():
+    """Buscar elemento por número de etiqueta para V3"""
+    try:
+        data = request.get_json()
+        numero_etiqueta = data.get('numero_etiqueta')
+        
+        if not numero_etiqueta:
+            return jsonify({
+                'success': False,
+                'message': 'Número de etiqueta es obligatorio'
+            }), 400
+        
+        # Intentar convertir a número
+        try:
+            numero_etiqueta = int(numero_etiqueta)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'message': 'Número de etiqueta debe ser un número entero'
+            }), 400
+        
+        # Leer archivo JSON de grupos de etiquetas
+        json_path = os.path.join(current_app.config['DATA_FOLDER'], 'grupos_etiquetas.json')
+        
+        if not os.path.exists(json_path):
+            return jsonify({
+                'success': False,
+                'message': 'No se encontraron etiquetas generadas. Por favor, genera etiquetas desde el Admin primero.'
+            }), 404
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data_json = json.load(f)
+        
+        # Buscar el grupo con ese número
+        grupos = data_json.get('grupos', [])
+        grupo_encontrado = None
+        
+        for grupo in grupos:
+            if grupo.get('numero_etiqueta') == numero_etiqueta:
+                grupo_encontrado = grupo
+                break
+        
+        if not grupo_encontrado:
+            return jsonify({
+                'success': False,
+                'message': f'No se encontró la etiqueta número {numero_etiqueta}'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'grupo': grupo_encontrado,
+            'mensaje': f'Etiqueta #{numero_etiqueta}: {grupo_encontrado["elemento"]} - Cable {grupo_encontrado["cod_cable"]}'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al buscar por número de etiqueta: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al buscar etiqueta: {str(e)}'
+        }), 500
+
+@bp.route('/api/etiquetas/grupos_json', methods=['GET'])
+def get_grupos_etiquetas_json():
+    """Obtener el JSON de grupos de etiquetas para V3"""
+    try:
+        json_path = os.path.join(current_app.config['DATA_FOLDER'], 'grupos_etiquetas.json')
+        
+        if not os.path.exists(json_path):
+            return jsonify({
+                'success': False,
+                'message': 'Archivo de etiquetas no encontrado',
+                'grupos': []
+            }), 404
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data_json = json.load(f)
+        
+        return jsonify({
+            'success': True,
+            'grupos': data_json.get('grupos', []),
+            'archivo': data_json.get('archivo', ''),
+            'total_grupos': data_json.get('total_grupos', 0)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al obtener grupos de etiquetas: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}',
+            'grupos': []
+        }), 500
+
+@bp.route('/api/etiquetas/grupos_bono/<nombre_bono>', methods=['GET'])
+def get_grupos_etiquetas_bono(nombre_bono):
+    """Obtener etiquetas de TODOS los archivos de un bono para V3"""
+    try:
+        bono = proyecto_manager.obtener_bono(nombre_bono)
+        if not bono:
+            return jsonify({
+                'success': False,
+                'message': 'Bono no encontrado',
+                'grupos': []
+            }), 404
+        
+        todos_los_grupos = []
+        
+        # Iterar por cada carro/archivo del bono
+        for carro_info in bono.get('carros', []):
+            archivo = carro_info.get('archivo_excel')
+            if not archivo:
+                continue
+            
+            # Cargar o generar las etiquetas de este archivo
+            manager = ExcelManager(
+                current_app.config['UPLOAD_FOLDER'],
+                current_app.config['CODIGOS_FILE']
+            )
+            
+            if not manager.cargar_excel(archivo):
+                logger.warning(f"No se pudo cargar archivo {archivo}")
+                continue
+            
+            # Convertir DataFrame a registros
+            registros = manager.current_df.to_dict('records')
+            
+            # Agrupar por cod.cable + elemento
+            grupos_dict = agrupar_por_cod_cable_elemento(registros)
+            
+            # Convertir a lista
+            grupos_lista = []
+            for clave, grupo in grupos_dict.items():
+                grupos_lista.append({
+                    'cod_cable': grupo['cod_cable'],
+                    'elemento': grupo['elemento'],
+                    'descripcion': grupo['descripcion'],
+                    'seccion': grupo['seccion'],
+                    'longitud': grupo['longitud'],
+                    'de_terminal': grupo['de_terminal'],
+                    'num_cables': grupo['num_cables'],
+                    'num_terminales': grupo['num_terminales'],
+                    'archivo': archivo  # Agregar referencia al archivo
+                })
+            
+            # Ordenar por cod_cable y elemento
+            grupos_lista.sort(key=lambda x: (x['cod_cable'], x['elemento']))
+            
+            # Filtrar solo grupos con sección
+            grupos_con_seccion = [g for g in grupos_lista if g.get('seccion') and str(g.get('seccion')).strip()]
+            
+            # Añadir numeración secuencial PROPIA de este archivo (empezar desde 1)
+            for i, grupo in enumerate(grupos_con_seccion, start=1):
+                grupo['numero_etiqueta'] = i
+            
+            # Agregar a la lista total
+            todos_los_grupos.extend(grupos_con_seccion)
+        
+        return jsonify({
+            'success': True,
+            'grupos': todos_los_grupos,
+            'total_grupos': len(todos_los_grupos),
+            'archivos_procesados': len(bono.get('carros', []))
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al obtener grupos del bono {nombre_bono}: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}',
+            'grupos': []
+        }), 500
+
+@bp.route('/api/etiquetas/generar_html', methods=['POST'])
+def generar_etiquetas_html():
+    """Generar HTML de etiquetas para imprimir en impresora normal"""
+    try:
+        data = request.get_json()
+        archivo = data.get('archivo', '').strip()
+        grupos = data.get('grupos', [])
+        codigo_corte = data.get('codigo_corte', '').strip()
+        
+        if not archivo or not grupos:
+            return jsonify({
+                'success': False,
+                'message': 'Faltan datos requeridos (archivo, grupos)'
+            }), 400
+        
+        # Generar HTML para imprimir
+        html = generar_html_etiquetas_impresion(grupos, archivo, codigo_corte)
+        
+        return jsonify({
+            'success': True,
+            'html': html,
+            'total_etiquetas': len(grupos)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error al generar HTML de etiquetas: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error al generar HTML: {str(e)}'
+        }), 500
+
+
+def agrupar_por_cod_cable_elemento(registros):
+    """
+    Agrupar registros por Cod.cable + De Elemento
+    Similar a agrupar_por_cable_elemento pero sin filtrar por terminal
+    """
+    grupos = {}
+    
+    for row in registros:
+        cod_cable = row.get('Cod. cable', 'Sin código')
+        de_elemento = row.get('De Elemento', 'Sin elemento')
+        
+        # Saltar si son valores vacíos
+        if pd.isna(cod_cable) or pd.isna(de_elemento):
+            continue
+        
+        cod_cable = str(cod_cable).strip()
+        de_elemento = str(de_elemento).strip()
+        
+        if not cod_cable or not de_elemento:
+            continue
+        
+        clave = f"{cod_cable}|{de_elemento}"
+        
+        if clave not in grupos:
+            grupos[clave] = {
+                'cod_cable': cod_cable,
+                'elemento': de_elemento,
+                'descripcion': str(row.get('Descripción Cable', '')).strip() if not pd.isna(row.get('Descripción Cable')) else '',
+                'seccion': str(row.get('Sección', '')).strip() if not pd.isna(row.get('Sección')) else '',
+                'longitud': row.get('Longitud', '') if not pd.isna(row.get('Longitud')) else '',
+                'de_terminal': str(row.get('De Terminal', '')).strip() if not pd.isna(row.get('De Terminal')) else '',
+                'cables_lista': [],
+                'num_terminales': 0
+            }
+        
+        # Agregar cable
+        cable_marca = str(row.get('Cable / Marca', '')).strip()
+        grupos[clave]['cables_lista'].append(cable_marca)
+        
+        # Contar terminales
+        de_terminal = str(row.get('De Terminal', '')).strip().upper() if not pd.isna(row.get('De Terminal')) else ''
+        para_terminal = str(row.get('Para Terminal', '')).strip().upper() if not pd.isna(row.get('Para Terminal')) else ''
+        
+        if de_terminal and de_terminal != 'S/T':
+            grupos[clave]['num_terminales'] += 1
+        if para_terminal and para_terminal != 'S/T':
+            grupos[clave]['num_terminales'] += 1
+    
+    # Calcular num_cables
+    for grupo in grupos.values():
+        grupo['num_cables'] = len(grupo['cables_lista'])
+        del grupo['cables_lista']
+    
+    return grupos
+
+
+def generar_grupos_etiquetas_json(archivo):
+    """
+    Generar grupos de etiquetas y guardarlos en JSON para uso compartido entre Etiquetas y V3.
+    Se llama automáticamente al agregar un nuevo corte.
+    """
+    try:
+        manager = ExcelManager(
+            current_app.config['UPLOAD_FOLDER'],
+            current_app.config['CODIGOS_FILE']
+        )
+        
+        # Cargar el archivo Excel
+        if not manager.cargar_excel(archivo):
+            logger.error(f"Error al cargar archivo {archivo} para generar grupos")
+            return False
+        
+        # Obtener el código del corte desde codigos_cortes.json
+        codigo_corte = ""
+        try:
+            codigos_path = os.path.join(current_app.config['DATA_FOLDER'], 'codigos_cortes.json')
+            with open(codigos_path, 'r', encoding='utf-8') as f:
+                codigos_data = json.load(f)
+                for corte in codigos_data.get('cortes', []):
+                    if corte.get('archivo', '').upper() == archivo.upper():
+                        codigo_corte = corte.get('codigo_barras', '')
+                        break
+        except Exception as e:
+            logger.warning(f"No se pudo obtener código de corte para {archivo}: {e}")
+        
+        # Convertir DataFrame a lista de diccionarios
+        todos_registros = manager.current_df.to_dict('records')
+        
+        # Obtener grupos usando la función existente
+        grupos_dict = agrupar_por_cod_cable_elemento(todos_registros)
+        
+        # Convertir a lista y ordenar
+        grupos_lista = []
+        for clave, grupo in grupos_dict.items():
+            grupos_lista.append({
+                'cod_cable': grupo['cod_cable'],
+                'elemento': grupo['elemento'],
+                'descripcion': grupo['descripcion'],
+                'seccion': grupo['seccion'],
+                'longitud': grupo['longitud'],
+                'de_terminal': grupo['de_terminal'],
+                'num_cables': grupo['num_cables'],
+                'num_terminales': grupo['num_terminales']
+            })
+        
+        # Ordenar por cod_cable y elemento
+        grupos_lista.sort(key=lambda x: (x['cod_cable'], x['elemento']))
+        
+        # Filtrar solo grupos con sección
+        grupos_con_seccion = [g for g in grupos_lista if g.get('seccion') and str(g.get('seccion')).strip()]
+        
+        # Añadir numeración secuencial solo a grupos con sección
+        for i, grupo in enumerate(grupos_con_seccion, start=1):
+            grupo['numero_etiqueta'] = i
+        
+        # Guardar en archivo JSON compartido
+        json_path = os.path.join(current_app.config['DATA_FOLDER'], 'grupos_etiquetas.json')
+        data_to_save = {
+            'archivo': archivo,
+            'codigo_corte': codigo_corte,
+            'fecha_generacion': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'total_grupos': len(grupos_con_seccion),
+            'grupos': grupos_con_seccion
+        }
+        
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Grupos de etiquetas generados: {len(grupos_con_seccion)} grupos para {archivo}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error al generar grupos de etiquetas: {str(e)}")
+        return False
+
+
+def generar_html_etiquetas_impresion(grupos, archivo, codigo_corte=""):
+    """
+    Generar HTML con CSS para imprimir etiquetas en impresora normal
+    Formato: 3 columnas de etiquetas por página
+    """
+    html = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etiquetas - {archivo}</title>
+    <style>
+        @media print {{
+            @page {{
+                size: A4 landscape;
+                margin: 10mm 10mm 10mm 8mm;
+            }}
+            body {{
+                margin: 0;
+                padding: 0;
+            }}
+            .no-print {{
+                display: none;
+            }}
+            .page-break {{
+                page-break-after: always;
+                page-break-inside: avoid;
+                break-after: page;
+            }}
+            .etiquetas-container {{
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }}
+        }}
+        
+        body {{
+            font-family: Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }}
+        
+        .header {{
+            text-align: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }}
+        
+        .no-print {{
+            margin-bottom: 15px;
+            text-align: center;
+        }}
+        
+        .etiquetas-container {{
+            display: grid;
+            grid-template-columns: repeat(13, 21.3mm);
+            grid-template-rows: repeat(5, 38mm);
+            gap: 0;
+            width: fit-content;
+            margin: 0 auto;
+            justify-content: center;
+        }}
+        
+        .etiqueta {{
+            width: 21.3mm;
+            height: 38mm;
+            border: 2px solid #333;
+            padding: 0;
+            background: white;
+            box-sizing: border-box;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            break-inside: avoid;
+            page-break-inside: avoid;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+        }}
+        
+        .etiqueta-top {{
+            height: 19mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-bottom: 2px solid #0ea5e9;
+            padding: 2mm 1mm;
+            gap: 1mm;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+        }}
+        
+        .etiqueta-numero {{
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            color: white;
+            font-size: 16pt;
+            font-weight: bold;
+            padding: 2mm 4mm;
+            border-radius: 4mm;
+            min-width: 10mm;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+        }}
+        
+        .etiqueta-elemento {{
+            font-size: 9pt;
+            font-weight: bold;
+            color: #1e40af;
+            text-align: center;
+            line-height: 1.1;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            word-break: break-word;
+        }}
+        
+        .etiqueta-bottom {{
+            height: 19mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            padding: 2mm 1mm;
+            gap: 0.5mm;
+        }}
+        
+        .etiqueta-info-line {{
+            font-size: 7pt;
+            text-align: center;
+            line-height: 1.2;
+            width: 100%;
+        }}
+        
+        .etiqueta-corte {{
+            font-weight: bold;
+            color: #059669;
+            font-size: 7pt;
+            background: #d1fae5;
+            padding: 0.5mm 2mm;
+            border-radius: 2mm;
+            margin-bottom: 0.5mm;
+        }}
+        
+        .etiqueta-cable {{
+            font-weight: bold;
+            color: #2563eb;
+            font-size: 8pt;
+        }}
+        
+        .etiqueta-descripcion {{
+            color: #334155;
+            font-size: 7pt;
+        }}
+        
+        .etiqueta-seccion {{
+            color: #64748b;
+            font-size: 7pt;
+            background: #f1f5f9;
+            padding: 0.5mm 2mm;
+            border-radius: 2mm;
+            margin-top: 0.5mm;
+        }}
+        
+        /* Estilos para vista previa en pantalla */
+        @media screen {{
+            .etiquetas-container {{
+                transform: scale(1.5);
+                transform-origin: top left;
+                margin-bottom: 50px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="no-print">
+        <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 5px;">
+            🖨️ Imprimir Etiquetas
+        </button>
+        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer; background: #f44336; color: white; border: none; border-radius: 5px; margin-left: 10px;">
+            ✕ Cerrar
+        </button>
+        <p style="margin-top: 10px; color: #666;">Formato: A4 Apaisado | 13 columnas × 5 filas | 21mm × 38mm por etiqueta</p>
+    </div>
+    
+    <div class="header no-print">
+        <h2>Etiquetas de Grupos - {archivo}</h2>
+    </div>
+    
+    <div class="etiquetas-container">
+"""
+    
+    # Filtrar grupos que tengan sección
+    grupos_con_seccion = [g for g in grupos if g.get('seccion') and str(g.get('seccion')).strip()]
+    
+    # Añadir información del número de etiquetas filtradas al HTML
+    html = html.replace('<h2>Etiquetas de Grupos - {archivo}</h2>', 
+                       f'<h2>Etiquetas de Grupos - {{archivo}}</h2><p style="margin-top: 10px; color: #666;">Total de etiquetas con sección: {len(grupos_con_seccion)}</p>')
+    
+    # Generar etiquetas (hasta 65 por página: 13 columnas x 5 filas)
+    for i, grupo in enumerate(grupos_con_seccion):
+        numero = i + 1  # Numeración secuencial solo para grupos con sección
+        
+        # Truncar textos para que quepan en etiquetas pequeñas
+        elemento = grupo['elemento'][:15] if len(grupo['elemento']) > 15 else grupo['elemento']
+        cod_cable = grupo['cod_cable'][:12] if len(grupo['cod_cable']) > 12 else grupo['cod_cable']
+        seccion = grupo.get('seccion', '')[:10] if grupo.get('seccion') else ''
+        descripcion = grupo.get('descripcion', '')[:18] if grupo.get('descripcion') else ''
+        
+        html += f"""
+        <div class="etiqueta">
+            <div class="etiqueta-top">
+                <div class="etiqueta-numero">{numero}</div>
+                <div class="etiqueta-elemento">{elemento}</div>
+            </div>
+            <div class="etiqueta-bottom">"""
+        
+        # Añadir código de corte si existe
+        if codigo_corte:
+            html += f"""
+                <div class="etiqueta-info-line etiqueta-corte">{codigo_corte}</div>"""
+        
+        html += f"""
+                <div class="etiqueta-info-line etiqueta-cable">{cod_cable}</div>"""
+        
+        if seccion:
+            html += f"""
+                <div class="etiqueta-info-line etiqueta-seccion">{seccion}</div>"""
+        
+        html += """
+            </div>
+        </div>
+"""
+        
+        # Salto de página cada 65 etiquetas (13 columnas x 5 filas)
+        if (i + 1) % 65 == 0 and (i + 1) < len(grupos_con_seccion):
+            html += """
+    </div>
+    <div class="page-break"></div>
+    <div class="etiquetas-container">
+"""
+    
+    html += """
+    </div>
+</body>
+</html>
+"""
+    
+    return html
 
 # ================================
 # API ROUTES PARA PUESTOS Y MÁQUINAS
@@ -1226,6 +1965,54 @@ def obtener_progreso_bono(nombre_bono):
             return jsonify({'success': False, 'message': 'Bono no encontrado'})
             
     except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@bp.route('/api/bonos/<nombre_bono>/terminales-disponibles', methods=['GET'])
+def obtener_terminales_disponibles_bono(nombre_bono):
+    """Obtener terminales que tienen datos en los archivos del bono"""
+    try:
+        bono = proyecto_manager.obtener_bono(nombre_bono)
+        if not bono:
+            return jsonify({'success': False, 'message': 'Bono no encontrado'})
+        
+        # Obtener todos los archivos del bono
+        carros = bono.get('carros', [])
+        terminales_con_datos = set()
+        
+        # Para cada archivo, obtener los terminales únicos
+        for carro in carros:
+            archivo = carro.get('archivo_excel')
+            if not archivo:
+                continue
+            
+            # Cargar el archivo y obtener terminales
+            manager = ExcelManager(
+                current_app.config['UPLOAD_FOLDER'],
+                current_app.config['CODIGOS_FILE']
+            )
+            
+            if manager.cargar_excel(archivo):
+                # Convertir a registros
+                registros = manager.current_df.to_dict('records')
+                
+                # Extraer terminales únicos
+                for row in registros:
+                    de_terminal = str(row.get('De Terminal', '')).strip().upper()
+                    para_terminal = str(row.get('Para Terminal', '')).strip().upper()
+                    
+                    # Solo agregar si no es vacío y no es S/T
+                    if de_terminal and de_terminal != 'S/T' and not pd.isna(row.get('De Terminal')):
+                        terminales_con_datos.add(de_terminal)
+                    if para_terminal and para_terminal != 'S/T' and not pd.isna(row.get('Para Terminal')):
+                        terminales_con_datos.add(para_terminal)
+        
+        return jsonify({
+            'success': True,
+            'terminales': sorted(list(terminales_con_datos))
+        })
+            
+    except Exception as e:
+        logger.error(f"Error al obtener terminales disponibles: {e}")
         return jsonify({'success': False, 'message': str(e)})
 
 @bp.route('/api/bonos/<nombre_bono>/progreso-por-carro', methods=['GET'])
