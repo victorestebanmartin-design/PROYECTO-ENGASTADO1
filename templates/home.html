@@ -3,8 +3,54 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inicio - Sistema de Engastado</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=landing2">
+  <title>🏠 Dashboard - Sistema de Engastado</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=landing3">
+  <style>
+    .landing-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-item {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stat-item:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    .stat-icon {
+      font-size: 2.5rem;
+      opacity: 0.9;
+    }
+    .stat-info {
+      flex: 1;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      opacity: 0.9;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 0.25rem;
+    }
+    .loading-stat {
+      opacity: 0.7;
+      font-size: 1.2rem;
+    }
+  </style>
 </head>
 <body>
   <div class="container landing-container">
@@ -12,140 +58,177 @@
       <div class="landing-logo">
         <div class="logo-icon">🔧</div>
         <div>
-          <h1>Sistema de Engastado</h1>
-          <div class="landing-version">Versión 2.0</div>
+          <h1>Sistema de Engastado Automático</h1>
+          <div class="landing-version">Versión 3.0 Pro</div>
         </div>
       </div>
-      <p class="landing-subtitle">Selecciona el modo de operación que deseas utilizar</p>
+      <p class="landing-subtitle">Panel de control unificado - Gestión integral de producción</p>
     </header>
 
-    <div class="landing-stats">
+    <div class="landing-stats" id="dashboard-stats">
       <div class="stat-item">
         <div class="stat-icon">📊</div>
         <div class="stat-info">
           <div class="stat-label">Terminales</div>
-          <div class="stat-value">32 activos</div>
+          <div class="stat-value loading-stat">⏳ Cargando...</div>
         </div>
       </div>
       <div class="stat-item">
-        <div class="stat-icon">⚡</div>
+        <div class="stat-icon">📁</div>
         <div class="stat-info">
-          <div class="stat-label">Estado</div>
-          <div class="stat-value">Sistema listo</div>
+          <div class="stat-label">Proyectos</div>
+          <div class="stat-value loading-stat">⏳ Cargando...</div>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">⚙️</div>
+        <div class="stat-info">
+          <div class="stat-label">Máquinas</div>
+          <div class="stat-value loading-stat">⏳ Cargando...</div>
         </div>
       </div>
       <div class="stat-item">
         <div class="stat-icon">🎯</div>
         <div class="stat-info">
-          <div class="stat-label">Modo</div>
-          <div class="stat-value">Producción</div>
+          <div class="stat-label">Estado</div>
+          <div class="stat-value">✅ Operativo</div>
         </div>
       </div>
     </div>
 
     <div class="card landing-selector">
-      <h2 class="landing-title">Elige Versión</h2>
+      <h2 class="landing-title">🚀 Módulos del Sistema</h2>
       <div class="version-grid">
-        <div class="version-card version-v1">
-          <div class="version-icon">🔍</div>
-          <h3>Versión Básica (V1)</h3>
-          <p>Consulta y agrupado rápido de terminales desde Excel. Ideal para ver cantidades y códigos sin flujo guiado.</p>
-          <div class="version-features">
-            <span class="feature-tag">Búsqueda rápida</span>
-            <span class="feature-tag">Agrupado automático</span>
-          </div>
-          <a href="{{ url_for('main.index') }}" class="btn-primary btn-version">Entrar a V1</a>
-        </div>
-        <div class="version-card version-v2 recommended">
-          <div class="version-badge">Recomendado</div>
-          <div class="version-icon">⚡</div>
-          <h3>Versión Interactiva (V2)</h3>
-          <p>Flujo paso a paso con temporizador, progreso y selección secuencial de cajas/paquetes para el operario.</p>
-          <div class="version-features">
-            <span class="feature-tag">Guía paso a paso</span>
-            <span class="feature-tag">Temporizador</span>
-            <span class="feature-tag">Progreso visual</span>
-          </div>
-          <a href="{{ url_for('main.index_v2') }}" class="btn-primary btn-version btn-version-v2">Entrar a V2</a>
-        </div>
-        <div class="version-card version-v3">
-          <div class="version-badge">Nuevo</div>
+        <div class="version-card version-v3 recommended">
+          <div class="version-badge">Operación</div>
           <div class="version-icon">🚀</div>
-          <h3>Versión Avanzada (V3)</h3>
-          <p>Funcionalidades avanzadas y nuevas características. En desarrollo para casos de uso especializados.</p>
+          <h3>Engastado V3</h3>
+          <p>Sistema principal de engastado con lectura de códigos de barras, asignación de terminales y flujo guiado paso a paso.</p>
           <div class="version-features">
-            <span class="feature-tag">Modo avanzado</span>
-            <span class="feature-tag">En desarrollo</span>
+            <span class="feature-tag">Scanner integrado</span>
+            <span class="feature-tag">Flujo guiado</span>
+            <span class="feature-tag">Agrupado inteligente</span>
           </div>
-          <a href="{{ url_for('main.index_v3') }}" class="btn-primary btn-version btn-version-v3">Entrar a V3</a>
+          <a href="{{ url_for('main.index_v3') }}" class="btn-primary btn-version btn-version-v3">🔧 Iniciar Engastado</a>
         </div>
         <div class="version-card version-admin">
           <div class="version-icon">⚙️</div>
           <h3>Administración</h3>
-          <p>Sube archivos Excel, asocia códigos de barras y gestiona el estado (activo/desactivado) de los terminales.</p>
+          <p>Gestión de archivos Excel, códigos de barras, configuración de terminales, impresora y actualizaciones del sistema.</p>
           <div class="version-features">
-            <span class="feature-tag">Gestión Excel</span>
-            <span class="feature-tag">Control terminales</span>
+            <span class="feature-tag">Archivos Excel</span>
+            <span class="feature-tag">Config. terminales</span>
+            <span class="feature-tag">Sistema</span>
           </div>
-          <a href="{{ url_for('main.admin') }}" class="btn-primary btn-version btn-version-admin">Ir a Admin</a>
+          <a href="{{ url_for('main.admin') }}" class="btn-primary btn-version btn-version-admin">⚙️ Administrar</a>
+        </div>
+        <div class="version-card version-puestos">
+          <div class="version-icon">🏢</div>
+          <h3>Puestos y Máquinas</h3>
+          <p>Define la estructura organizacional: crea puestos de trabajo, registra máquinas y asigna terminales a cada equipo.</p>
+          <div class="version-features">
+            <span class="feature-tag">Puestos</span>
+            <span class="feature-tag">Máquinas</span>
+            <span class="feature-tag">Asignaciones</span>
+          </div>
+          <a href="{{ url_for('main.gestion_puestos') }}" class="btn-primary btn-version btn-version-puestos">🏢 Configurar</a>
         </div>
         <div class="version-card version-proyectos">
           <div class="version-icon">🚛</div>
           <h3>Gestión de Bonos</h3>
-          <p>Crea bonos visuales, gestiona proyectos en carros, elimina bonos antiguos y genera reportes de producción detallados.</p>
+          <p>Crea bonos de producción, asigna carros, gestiona proyectos activos y genera reportes detallados de progreso.</p>
           <div class="version-features">
-            <span class="feature-tag">Crear Bonos</span>
-            <span class="feature-tag">Eliminar</span>
+            <span class="feature-tag">Bonos</span>
+            <span class="feature-tag">Carros</span>
             <span class="feature-tag">Reportes</span>
           </div>
-          <a href="{{ url_for('main.gestion_proyectos') }}" class="btn-primary btn-version btn-version-proyectos">Gestionar Bonos</a>
+          <a href="{{ url_for('main.gestion_proyectos') }}" class="btn-primary btn-version btn-version-proyectos">🚛 Gestionar Bonos</a>
         </div>
         <div class="version-card version-visualizacion">
           <div class="version-icon">📊</div>
           <h3>Visualización</h3>
-          <p>Dashboard en tiempo real del progreso de bonos. Ideal para pantallas externas o monitoreo remoto.</p>
+          <p>Dashboard en tiempo real con progreso de bonos, estados de carros y métricas de producción. Ideal para pantallas externas.</p>
           <div class="version-features">
             <span class="feature-tag">Tiempo real</span>
             <span class="feature-tag">Multi-pantalla</span>
-            <span class="feature-tag">Dashboard</span>
+            <span class="feature-tag">Métricas</span>
           </div>
-          <a href="{{ url_for('main.visualizacion') }}" class="btn-primary btn-version btn-version-visualizacion">Ver Dashboard</a>
+          <a href="{{ url_for('main.visualizacion') }}" class="btn-primary btn-version btn-version-visualizacion">📊 Monitorear</a>
         </div>
         <div class="version-card version-ordenes">
           <div class="version-icon">📋</div>
-          <h3>Registro de Órdenes</h3>
-          <p>Gestiona las órdenes de producción disponibles. Registra y organiza los cortes de cable para cargar en bonos.</p>
+          <h3>Órdenes de Producción</h3>
+          <p>Registra, consulta y organiza órdenes de producción. Control de stock de cortes de cable y planificación de bonos.</p>
           <div class="version-features">
-            <span class="feature-tag">Base de datos</span>
-            <span class="feature-tag">Control stock</span>
             <span class="feature-tag">Órdenes</span>
+            <span class="feature-tag">Stock</span>
+            <span class="feature-tag">Planificación</span>
           </div>
-          <a href="{{ url_for('main.registro_ordenes') }}" class="btn-primary btn-version btn-version-ordenes">Gestionar Órdenes</a>
+          <a href="{{ url_for('main.registro_ordenes') }}" class="btn-primary btn-version btn-version-ordenes">📋 Órdenes</a>
         </div>
         <div class="version-card version-etiquetas">
           <div class="version-icon">🏷️</div>
           <h3>Etiquetas</h3>
-          <p>Genera etiquetas para elementos de cortes de cable. Imprime en formato A4 con 65 etiquetas troqueladas (5x13mm).</p>
+          <p>Genera e imprime etiquetas para elementos de cortes. Formato A4 con 65 etiquetas troqueladas de 5x13mm.</p>
           <div class="version-features">
-            <span class="feature-tag">Etiquetas A4</span>
-            <span class="feature-tag">65 unidades</span>
-            <span class="feature-tag">Impresión masiva</span>
+            <span class="feature-tag">Formato A4</span>
+            <span class="feature-tag">65 uds</span>
+            <span class="feature-tag">Impresión</span>
           </div>
-          <a href="{{ url_for('main.etiquetas') }}" class="btn-primary btn-version btn-version-etiquetas">Generar Etiquetas</a>
+          <a href="{{ url_for('main.etiquetas') }}" class="btn-primary btn-version btn-version-etiquetas">🏷️ Etiquetar</a>
         </div>
       </div>
     </div>
 
     <div class="card landing-summary">
-      <h2 class="landing-summary-title">Resumen rápido</h2>
+      <h2 class="landing-summary-title">📌 Guía Rápida</h2>
       <ul class="landing-list">
-        <li>V1: Visualización y agrupado de terminales (consulta ágil).</li>
-        <li>V2: Asistencia operativa con control de avance y temporizador.</li>
-        <li>V3: Funcionalidades avanzadas y casos de uso especializados.</li>
-        <li>Admin: Gestión de archivos y activación/desactivación de terminales.</li>
+        <li><strong>Engastado V3:</strong> Módulo principal para operación de engastado con scanner y flujo guiado.</li>
+        <li><strong>Administración:</strong> Gestión de archivos Excel, terminales y configuración del sistema.</li>
+        <li><strong>Puestos y Máquinas:</strong> Estructura organizacional, asignación de terminales por equipo.</li>
+        <li><strong>Bonos:</strong> Creación de bonos de producción, asignación de carros y reportes.</li>
+        <li><strong>Visualización:</strong> Dashboard en tiempo real para monitoreo de progreso.</li>
+        <li><strong>Órdenes:</strong> Control de stock y planificación de órdenes de producción.</li>
+        <li><strong>Etiquetas:</strong> Generación e impresión de etiquetas identificativas.</li>
       </ul>
-      <p class="landing-footnote">Puedes volver a esta pantalla siempre accediendo a la raíz: <code>/</code></p>
+      <p class="landing-footnote">💡 Accede al dashboard desde cualquier módulo usando el enlace <strong>🏠 Inicio</strong> o visitando <code>/</code></p>
     </div>
   </div>
+  
+  <script>
+    // Cargar estadísticas dinámicas del dashboard
+    async function cargarEstadisticas() {
+      try {
+        // Cargar terminales
+        const resTerminales = await fetch('/api/listar_terminales');
+        const dataTerminales = await resTerminales.json();
+        document.querySelector('#dashboard-stats .stat-value').textContent = 
+          dataTerminales.success ? `${dataTerminales.total_terminales} activos` : '0 activos';
+        
+        // Cargar proyectos
+        const resCortes = await fetch('/api/list_cortes');
+        const dataCortes = await resCortes.json();
+        const numProyectos = dataCortes.cortes ? dataCortes.cortes.length : 0;
+        document.querySelectorAll('#dashboard-stats .stat-value')[1].textContent = 
+          `${numProyectos} cargados`;
+        
+        // Cargar máquinas
+        const resMaquinas = await fetch('/api/maquinas');
+        const dataMaquinas = await resMaquinas.json();
+        const numMaquinas = dataMaquinas.maquinas ? dataMaquinas.maquinas.length : 0;
+        document.querySelectorAll('#dashboard-stats .stat-value')[2].textContent = 
+          `${numMaquinas} configuradas`;
+      } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+        document.querySelectorAll('.loading-stat').forEach(stat => {
+          stat.textContent = 'N/A';
+          stat.classList.remove('loading-stat');
+        });
+      }
+    }
+    
+    // Cargar al iniciar página
+    cargarEstadisticas();
+  </script>
 </body>
 </html>
