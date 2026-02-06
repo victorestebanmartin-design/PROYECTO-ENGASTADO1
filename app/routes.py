@@ -1579,11 +1579,45 @@ def delete_maquina(maquina_id):
 def get_terminales_disponibles():
     """Obtener todos los terminales disponibles con su estado de asignación"""
     try:
-        manager = get_excel_manager()
-        
-        # Obtener todos los terminales únicos del sistema
-        terminales_sistema = manager.listar_terminales_unicos()
-        
+        # Obtener terminales unicos de todos los proyectos registrados
+        codigos_file = current_app.config['CODIGOS_FILE']
+        if not os.path.exists(codigos_file):
+            return jsonify({'success': False, 'message': 'No hay archivos Excel asociados a codigos de barras'}), 400
+
+        with open(codigos_file, 'r', encoding='utf-8') as f:
+            codigos_data = json.load(f)
+
+        cortes = codigos_data.get('cortes', [])
+        if not cortes:
+            return jsonify({'success': False, 'message': 'No hay archivos Excel asociados a codigos de barras'}), 400
+
+        terminales_sistema = set()
+        archivos_con_error = []
+
+        for corte in cortes:
+            archivo = corte.get('archivo')
+            if not archivo:
+                continue
+
+            archivo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], archivo)
+            if not os.path.exists(archivo_path):
+                archivos_con_error.append(archivo)
+                continue
+
+            try:
+                temp_manager = ExcelManager(
+                    upload_folder=current_app.config['UPLOAD_FOLDER'],
+                    codigos_file=current_app.config['CODIGOS_FILE'],
+                    default_sheet=current_app.config['DEFAULT_SHEET']
+                )
+                temp_manager.cargar_excel_directo(archivo)
+                terminales_sistema.update(temp_manager.listar_terminales_unicos())
+            except Exception as e:
+                archivos_con_error.append(f"{archivo} (error: {str(e)})")
+
+        if not terminales_sistema:
+            return jsonify({'success': False, 'message': 'No se encontraron terminales en los archivos'}), 400
+
         # Cargar asignaciones actuales
         with open('data/puestos_maquinas.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -1601,7 +1635,7 @@ def get_terminales_disponibles():
         
         # Preparar respuesta con estado de cada terminal
         terminales_con_estado = []
-        for terminal in terminales_sistema:
+        for terminal in sorted(list(terminales_sistema)):
             estado = {
                 'terminal': terminal,
                 'asignado': terminal in terminales_asignados,
@@ -1616,7 +1650,8 @@ def get_terminales_disponibles():
             'success': True, 
             'terminales': terminales_con_estado,
             'total': len(terminales_sistema),
-            'sin_asignar': sin_asignar
+            'sin_asignar': sin_asignar,
+            'archivos_con_error': archivos_con_error
         })
         
     except Exception as e:

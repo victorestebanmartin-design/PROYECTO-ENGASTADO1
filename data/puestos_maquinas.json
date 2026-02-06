@@ -9,14 +9,17 @@
         {
           "id": "maq_001",
           "nombre": "AMP ROJA",
-          "modelo": "KOMAX Alpha 355",
+          "modelo": "AMP (47386) (TERMINALES ROJOS)",
           "terminales_asignados": [
             "640204",
-            "640205",
-            "640206",
-            "640209",
-            "640211",
-            "640243"
+            "640243",
+            "640210",
+            "640230",
+            "640243A",
+            "641H002",
+            "641H039",
+            "641H056",
+            "640260"
           ],
           "activo": true,
           "descripcion": ""
@@ -26,11 +29,9 @@
           "nombre": "AMP AZUL",
           "modelo": "KOMAX Alpha 455",
           "terminales_asignados": [
-            "640210",
-            "640212",
-            "640230",
-            "640243A",
-            "641H002"
+            "640205",
+            "640211",
+            "640261"
           ],
           "activo": true,
           "descripcion": ""
@@ -43,9 +44,10 @@
           "activo": true,
           "terminales_asignados": [
             "640245",
-            "640260",
-            "640261",
-            "640304D"
+            "640206",
+            "640209",
+            "640212",
+            "641H057"
           ]
         }
       ]
@@ -58,23 +60,22 @@
       "maquinas": [
         {
           "id": "maq_003",
-          "nombre": "Harting",
+          "nombre": "Harting 1mm",
           "modelo": "Pines 1mm",
           "terminales_asignados": [
-            "641M10100"
+            "641M155"
           ],
           "activo": true,
           "descripcion": ""
         },
         {
           "id": "maquina_6",
-          "nombre": "Harting",
+          "nombre": "Harting 0,5mm",
           "modelo": "Pines 0,5mm",
           "descripcion": "",
           "activo": true,
           "terminales_asignados": [
-            "641M155",
-            "H0337649"
+            "641M10100"
           ]
         }
       ]
@@ -87,14 +88,25 @@
       "maquinas": [
         {
           "id": "maquina_4",
-          "nombre": "PUNTERAS ROJAS",
+          "nombre": "PUNTERAS",
           "modelo": "",
           "descripcion": "",
           "activo": true,
           "terminales_asignados": [
             "641H10055",
             "641H10057",
-            "641H10058"
+            "641H10058",
+            "641H10056"
+          ]
+        },
+        {
+          "id": "maquina_14",
+          "nombre": "WEIDMULLEER PZ10",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "H0337649"
           ]
         }
       ]
@@ -107,39 +119,30 @@
       "maquinas": [
         {
           "id": "maquina_5",
-          "nombre": "DMC AZUL",
+          "nombre": "DMC AZUL SH463",
           "modelo": "",
           "descripcion": "",
           "activo": true,
           "terminales_asignados": [
-            "641M10292",
-            "641H039",
-            "641H056",
-            "641H10056",
-            "641M026",
-            "641M027",
-            "641H057",
             "641M10293",
-            "641M10295"
+            "641M10295",
+            "641M10292"
           ]
         },
         {
           "id": "maquina_8",
-          "nombre": "TAMBOR VERDE",
+          "nombre": "TAMBOR VERDE E",
           "modelo": "",
           "descripcion": "",
           "activo": true,
           "terminales_asignados": [
-            "640305",
-            "641M10045",
-            "641M10091",
-            "641M10196",
             "641M600",
             "641M082",
-            "641M10078",
-            "641M613",
             "641M644",
-            "641M936"
+            "641M026",
+            "641M027",
+            "641M645",
+            "641M532"
           ]
         },
         {
@@ -149,11 +152,71 @@
           "descripcion": "",
           "activo": true,
           "terminales_asignados": [
-            "641M239",
-            "641M532",
-            "641M577",
-            "641M645",
-            "641M937"
+            "641M937",
+            "641M936"
+          ]
+        },
+        {
+          "id": "maquina_10",
+          "nombre": "AMP SIMABLOCK",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "640304D",
+            "640305"
+          ]
+        },
+        {
+          "id": "maquina_11",
+          "nombre": "DMC AZUL TH163",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M10196"
+          ]
+        },
+        {
+          "id": "maquina_12",
+          "nombre": "HARTING AZUL",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M10091",
+            "641M239"
+          ]
+        },
+        {
+          "id": "maquina_13",
+          "nombre": "POWER SIGNAL",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M10045"
+          ]
+        },
+        {
+          "id": "maquina_15",
+          "nombre": "TAMBOR VERDE C",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M613"
+          ]
+        },
+        {
+          "id": "maquina_16",
+          "nombre": "TAMBOR VERDE D",
+          "modelo": "",
+          "descripcion": "",
+          "activo": true,
+          "terminales_asignados": [
+            "641M10078",
+            "641M577"
           ]
         }
       ]
