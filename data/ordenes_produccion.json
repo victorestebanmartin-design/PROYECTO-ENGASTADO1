@@ -166,6 +166,53 @@
       "bono": "20260108_1",
       "fecha_inicio_bono": "2026-01-08T16:21:47.784610",
       "fecha_inicio_engaste": "2026-01-08T16:31:11.844453"
+    },
+    {
+      "id": "26c890fd-1289-4bd0-a8e0-6ec2de8bee86",
+      "codigo_corte": "H0068722",
+      "archivo_excel": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "numero": "60238681",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0068722-60238681-1-20260122",
+      "cantidad": 1,
+      "fecha_entrega": "2026-01-22",
+      "prioridad": "urgente",
+      "estado": "finalizado",
+      "fecha_creacion": "2026-02-05T16:33:25.942287",
+      "bono": "20260205_1",
+      "fecha_inicio_bono": "2026-02-05T17:08:01.460937",
+      "fecha_inicio_engaste": "2026-02-05T17:15:21.621102",
+      "fecha_finalizacion": "2026-02-05T17:48:33.294196"
+    },
+    {
+      "id": "c1a00f0a-b3b9-4ccd-ba5f-db6a24a6a040",
+      "codigo_corte": "H0420724",
+      "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "numero": "60238679",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0420724-60238679-1-20260126",
+      "cantidad": 1,
+      "fecha_entrega": "2026-01-26",
+      "prioridad": "urgente",
+      "estado": "finalizado",
+      "fecha_creacion": "2026-02-05T16:35:53.421495",
+      "bono": "20260205_1",
+      "fecha_inicio_bono": "2026-02-05T17:08:01.460967",
+      "fecha_inicio_engaste": "2026-02-05T17:15:21.621110",
+      "fecha_finalizacion": "2026-02-05T17:48:33.294202"
+    },
+    {
+      "id": "5a3c30f7-8bd2-4378-ba09-bf4d92e60622",
+      "codigo_corte": "H0068722",
+      "archivo_excel": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "numero": "60239681",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0068722-60239681-1-20260122",
+      "cantidad": 1,
+      "fecha_entrega": "2026-01-22",
+      "prioridad": "urgente",
+      "estado": "pendiente",
+      "fecha_creacion": "2026-02-05T16:36:02.563974"
     }
   ]
 }

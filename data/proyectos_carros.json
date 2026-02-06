@@ -315,7 +315,7 @@
       "nombre": "60236472 - H0420724",
       "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
       "fecha_carga": "2026-01-08T16:17:33.395525",
-      "carro_asignado": 1,
+      "carro_asignado": null,
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
@@ -325,16 +325,166 @@
       "nombre": "6539293 - H0068722",
       "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
       "fecha_carga": "2026-01-08T16:17:33.407665",
-      "carro_asignado": 2,
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 34,
+      "nombre": "60238681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:43:49.677548",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 35,
+      "nombre": "60239681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:43:49.693870",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 36,
+      "nombre": "60238679 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "fecha_carga": "2026-02-05T16:43:49.717091",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 37,
+      "nombre": "60238681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:45:44.092806",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 38,
+      "nombre": "60239681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:45:44.106179",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 39,
+      "nombre": "60238679 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "fecha_carga": "2026-02-05T16:45:44.122066",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 40,
+      "nombre": "60238681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:46:09.749368",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 41,
+      "nombre": "60239681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:46:09.777840",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 42,
+      "nombre": "60238679 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "fecha_carga": "2026-02-05T16:46:09.799779",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 43,
+      "nombre": "60238681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:46:18.534715",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 44,
+      "nombre": "60239681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T16:46:18.566007",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 45,
+      "nombre": "60238679 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "fecha_carga": "2026-02-05T16:46:18.588360",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 46,
+      "nombre": "60238681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T17:07:33.763308",
+      "carro_asignado": 1,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 47,
+      "nombre": "60239681 - H0068722",
+      "archivo": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "fecha_carga": "2026-02-05T17:07:33.793389",
+      "carro_asignado": null,
+      "progreso": 0,
+      "terminales_completados": [],
+      "estado": "activo"
+    },
+    {
+      "id": 48,
+      "nombre": "60238679 - H0420724",
+      "archivo": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "fecha_carga": "2026-02-05T17:07:33.809980",
+      "carro_asignado": 3,
       "progreso": 0,
       "terminales_completados": [],
       "estado": "activo"
     }
   ],
   "carros": {
-    "1": 32,
-    "2": 33,
-    "3": null,
+    "1": 46,
+    "2": null,
+    "3": 48,
     "4": null,
     "5": null,
     "6": null
@@ -1257,6 +1407,628 @@
           "fecha_finalizacion": "2026-01-08T16:34:08.326575"
         }
       }
+    },
+    "20260205_1": {
+      "nombre": "20260205_1",
+      "carros": [
+        {
+          "carro": 1,
+          "proyecto_id": 46,
+          "proyecto_nombre": "60238681 - H0068722",
+          "archivo_excel": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx"
+        },
+        {
+          "carro": 3,
+          "proyecto_id": 48,
+          "proyecto_nombre": "60238679 - H0420724",
+          "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx"
+        }
+      ],
+      "ordenes": [
+        "60238681",
+        "60238679"
+      ],
+      "fecha_generacion": "2026-02-05T17:08:01.463901",
+      "estado": "completado",
+      "num_cortes": 2,
+      "progreso": {
+        "641M10100": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M155": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "H0337649": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641H10058": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H10057": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H10055": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M10292": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H039": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640243": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "640211": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "640209": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H056": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640206": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640205": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H10056": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640204": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M026": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640210": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640212": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640230": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M027": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640243A": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641H002": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641H057": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M10293": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M10295": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "640305": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M10045": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M10091": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M10196": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M600": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640245": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640260": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "640261": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M082": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M10078": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "640304D": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M613": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M644": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M936": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        },
+        "641M239": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M532": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M577": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M645": {
+          "carros_completados": [
+            1,
+            3
+          ],
+          "estado": "completado"
+        },
+        "641M937": {
+          "carros_completados": [
+            3,
+            1
+          ],
+          "estado": "completado"
+        }
+      },
+      "progreso_por_carro": {
+        "1": {
+          "terminales_completados": [
+            "MCMifB/P2",
+            "LEmio1/P1",
+            "LEMIO1/P1",
+            "MCMIFB/P2",
+            "EEVCM/P1",
+            "MCMIFB/P1",
+            "MCMifB/P1",
+            "LEmio2/P1",
+            "Q1",
+            "XPM1-2",
+            "(M1) TB1",
+            "Q2.1",
+            "(CC) TB1",
+            "XP1",
+            "TB1",
+            "Q2",
+            "XRM_X1",
+            "Q3-Q9",
+            "Q6",
+            "K8",
+            "XRM_X2",
+            "T1",
+            "X17",
+            "XPM2",
+            "(M8) TB1",
+            "(M3) TB1",
+            "TB1-K5.2",
+            "(M14) TB1",
+            "RACK",
+            "(M11) Q3",
+            "(M11) Q4",
+            "XPM1-1",
+            "(M1) Q1",
+            "(M1) Q2",
+            "(S203) Q4",
+            "(S203) Q16.2",
+            "(S203) Q16.1",
+            "(CC) Q16.1",
+            "(CC) Q16.2",
+            "(M2 ) TB1",
+            "TB3",
+            "(S203) Q5",
+            "(S203) Q6",
+            "(S203) Q7",
+            "(S203) Q8",
+            "(S203) Q9",
+            "(S203) Q10",
+            "(S203) Q11",
+            "(S203) Q1",
+            "(S203) Q3",
+            "(S203) Q2",
+            "(ALT) Q5",
+            "(ALT) Q7",
+            "(ALT) Q10",
+            "(M12) Q5",
+            "(M12) Q6",
+            "(M12) Q7",
+            "(M12) Q8",
+            "(M10) Q11",
+            "(S208) Q5",
+            "(S208) Q6",
+            "(S208) Q7",
+            "(S208) Q8",
+            "(S208) Q9",
+            "(S208) Q10",
+            "(S208) Q11",
+            "(S208) Q1",
+            "(S208) Q3",
+            "(S208) Q2",
+            "TB4",
+            "Q3",
+            "Q10",
+            "K5.1",
+            "K5.2",
+            "K18",
+            "TB1-K10",
+            "TB1-K18",
+            "Q9",
+            "B12",
+            "B11",
+            "(M14) T1",
+            "PANEL",
+            "TACO N:2",
+            "M12",
+            "(M9) Q1",
+            "(M9) Q2"
+          ],
+          "operarios": [
+            "641M10100",
+            "641M155",
+            "H0337649",
+            "641H10058",
+            "641H10057",
+            "641H10055",
+            "641M10292",
+            "641H039",
+            "640243",
+            "640211",
+            "640209",
+            "641H056",
+            "640206",
+            "640205",
+            "641H10056",
+            "640204",
+            "641M026",
+            "640210",
+            "640212",
+            "640230",
+            "641M027",
+            "640243A",
+            "641H002",
+            "641H057",
+            "641M10293",
+            "641M10295",
+            "640305",
+            "641M10045",
+            "641M10091",
+            "641M10196",
+            "641M600",
+            "640245",
+            "640260",
+            "640261",
+            "641M082",
+            "641M10078",
+            "640304D",
+            "641M613",
+            "641M644",
+            "641M936",
+            "641M239",
+            "641M532",
+            "641M577",
+            "641M645",
+            "641M937"
+          ],
+          "finalizado": true,
+          "fecha_finalizacion": "2026-02-05T17:15:21.620483"
+        },
+        "3": {
+          "terminales_completados": [
+            "LEMIO1/P1",
+            "MCMIFB/P2",
+            "EEVCM/P1",
+            "MCMIFB/P1",
+            "MCMifB/P2",
+            "LEmio1/P1",
+            "MCMifB/P1",
+            "LEmio2/P1",
+            "Q1",
+            "Q2.1",
+            "XPM1-2",
+            "(M1) TB1",
+            "Q2",
+            "XRM_X1",
+            "Q3-Q9",
+            "Q6",
+            "TB1",
+            "K8",
+            "XRM_X2",
+            "T1",
+            "X17",
+            "(CC) TB1",
+            "XP1",
+            "TB1-K5.2",
+            "XPM2",
+            "(M8) TB1",
+            "(M3) TB1",
+            "(M14) TB1",
+            "RACK",
+            "(M11) Q3",
+            "(M11) Q4",
+            "XPM1-1",
+            "(M1) Q1",
+            "(M1) Q2",
+            "TB3",
+            "TB4",
+            "Q3",
+            "Q10",
+            "K5.1",
+            "K5.2",
+            "K18",
+            "TB1-K10",
+            "TB1-K18",
+            "Q9",
+            "B12",
+            "B11",
+            "(S203) Q4",
+            "(S203) Q16.2",
+            "(S203) Q16.1",
+            "(CC) Q16.1",
+            "(CC) Q16.2",
+            "(M2 ) TB1",
+            "(S203) Q5",
+            "(S203) Q6",
+            "(S203) Q7",
+            "(S203) Q8",
+            "(S203) Q9",
+            "(S203) Q10",
+            "(S203) Q11",
+            "(S203) Q1",
+            "(S203) Q3",
+            "(S203) Q2",
+            "(ALT) Q5",
+            "(ALT) Q7",
+            "(ALT) Q10",
+            "(M12) Q5",
+            "(M12) Q6",
+            "(M12) Q7",
+            "(M12) Q8",
+            "(M10) Q11",
+            "(S208) Q5",
+            "(S208) Q6",
+            "(S208) Q7",
+            "(S208) Q8",
+            "(S208) Q9",
+            "(S208) Q10",
+            "(S208) Q11",
+            "(S208) Q1",
+            "(S208) Q3",
+            "(S208) Q2",
+            "(M14) T1",
+            "PANEL",
+            "TACO N:2",
+            "M12",
+            "(M9) Q1",
+            "(M9) Q2"
+          ],
+          "operarios": [
+            "641M10100",
+            "641M155",
+            "H0337649",
+            "641H10058",
+            "641H10057",
+            "641H10055",
+            "641M10292",
+            "641H039",
+            "640243",
+            "640211",
+            "640209",
+            "641H056",
+            "640206",
+            "640205",
+            "641H10056",
+            "640204",
+            "641M026",
+            "640210",
+            "640212",
+            "640230",
+            "641M027",
+            "640243A",
+            "641H002",
+            "641H057",
+            "641M10293",
+            "641M10295",
+            "640305",
+            "641M10045",
+            "641M10091",
+            "641M10196",
+            "640245",
+            "641M600",
+            "640260",
+            "640261",
+            "641M082",
+            "641M10078",
+            "640304D",
+            "641M613",
+            "641M644",
+            "641M936",
+            "641M239",
+            "641M532",
+            "641M577",
+            "641M645",
+            "641M937"
+          ],
+          "finalizado": true,
+          "fecha_finalizacion": "2026-02-05T17:15:39.794099"
+        }
+      },
+      "fecha_finalizacion": "2026-02-05T17:48:33.293802"
     }
   }
 }
