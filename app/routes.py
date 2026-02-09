@@ -7,6 +7,7 @@ import os
 import json
 import logging
 from datetime import datetime
+import time
 import pandas as pd
 from app.excel_manager import ExcelManager
 from app.proyecto_manager import proyecto_manager
@@ -17,6 +18,12 @@ bp = Blueprint('main', __name__)
 
 # Variable global para el gestor de Excel
 excel_manager = None
+terminales_cache = {
+    'signature': None,
+    'timestamp': 0,
+    'terminales': None,
+    'archivos_con_error': None
+}
 
 def get_excel_manager():
     """Obtener instancia del gestor de Excel"""
@@ -28,6 +35,48 @@ def get_excel_manager():
             default_sheet=current_app.config['DEFAULT_SHEET']
         )
     return excel_manager
+
+def _build_terminales_signature(codigos_file, upload_folder, cortes):
+    codigos_mtime = os.path.getmtime(codigos_file) if os.path.exists(codigos_file) else None
+    archivos_info = []
+    for corte in cortes:
+        archivo = corte.get('archivo')
+        if not archivo:
+            continue
+        archivo_path = os.path.join(upload_folder, archivo)
+        try:
+            mtime = os.path.getmtime(archivo_path)
+        except OSError:
+            mtime = None
+        archivos_info.append((archivo, mtime))
+    return (codigos_mtime, tuple(sorted(archivos_info)))
+
+def _build_terminales_globales(upload_folder, codigos_file, default_sheet, cortes):
+    terminales_sistema = set()
+    archivos_con_error = []
+
+    for corte in cortes:
+        archivo = corte.get('archivo')
+        if not archivo:
+            continue
+
+        archivo_path = os.path.join(upload_folder, archivo)
+        if not os.path.exists(archivo_path):
+            archivos_con_error.append(archivo)
+            continue
+
+        try:
+            temp_manager = ExcelManager(
+                upload_folder=upload_folder,
+                codigos_file=codigos_file,
+                default_sheet=default_sheet
+            )
+            temp_manager.cargar_excel_directo(archivo)
+            terminales_sistema.update(temp_manager.listar_terminales_unicos())
+        except Exception as e:
+            archivos_con_error.append(f"{archivo} (error: {str(e)})")
+
+    return terminales_sistema, archivos_con_error
 
 def allowed_file(filename):
     """Verificar si el archivo tiene una extensión permitida"""
@@ -1591,29 +1640,34 @@ def get_terminales_disponibles():
         if not cortes:
             return jsonify({'success': False, 'message': 'No hay archivos Excel asociados a codigos de barras'}), 400
 
-        terminales_sistema = set()
-        archivos_con_error = []
+        cache_ttl = current_app.config.get('TERMINALES_CACHE_TTL', 300)
+        now = time.time()
+        signature = _build_terminales_signature(
+            codigos_file,
+            current_app.config['UPLOAD_FOLDER'],
+            cortes
+        )
 
-        for corte in cortes:
-            archivo = corte.get('archivo')
-            if not archivo:
-                continue
+        cache_valid = (
+            terminales_cache['terminales'] is not None and
+            terminales_cache['signature'] == signature and
+            (cache_ttl <= 0 or (now - terminales_cache['timestamp']) <= cache_ttl)
+        )
 
-            archivo_path = os.path.join(current_app.config['UPLOAD_FOLDER'], archivo)
-            if not os.path.exists(archivo_path):
-                archivos_con_error.append(archivo)
-                continue
-
-            try:
-                temp_manager = ExcelManager(
-                    upload_folder=current_app.config['UPLOAD_FOLDER'],
-                    codigos_file=current_app.config['CODIGOS_FILE'],
-                    default_sheet=current_app.config['DEFAULT_SHEET']
-                )
-                temp_manager.cargar_excel_directo(archivo)
-                terminales_sistema.update(temp_manager.listar_terminales_unicos())
-            except Exception as e:
-                archivos_con_error.append(f"{archivo} (error: {str(e)})")
+        if cache_valid:
+            terminales_sistema = set(terminales_cache['terminales'])
+            archivos_con_error = terminales_cache.get('archivos_con_error') or []
+        else:
+            terminales_sistema, archivos_con_error = _build_terminales_globales(
+                current_app.config['UPLOAD_FOLDER'],
+                codigos_file,
+                current_app.config['DEFAULT_SHEET'],
+                cortes
+            )
+            terminales_cache['terminales'] = sorted(list(terminales_sistema))
+            terminales_cache['archivos_con_error'] = archivos_con_error
+            terminales_cache['signature'] = signature
+            terminales_cache['timestamp'] = now
 
         if not terminales_sistema:
             return jsonify({'success': False, 'message': 'No se encontraron terminales en los archivos'}), 400
@@ -2147,6 +2201,20 @@ def generar_reporte_bono(nombre_bono):
         
         return jsonify({'success': True, 'reporte': reporte})
         
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@bp.route('/api/bonos/<nombre_bono>/reset-progreso', methods=['POST'])
+def resetear_progreso_bono(nombre_bono):
+    """Resetear el progreso de un bono"""
+    try:
+        exito = proyecto_manager.resetear_progreso_bono(nombre_bono)
+        
+        if exito:
+            return jsonify({'success': True, 'message': 'Progreso del bono reseteado correctamente'})
+        else:
+            return jsonify({'success': False, 'message': 'Bono no encontrado'})
+            
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

@@ -194,7 +194,109 @@
     <script>
         let bonoActualMonitor = null;
         let ultimoProgreso = null;
+        let terminalesBonoCache = {
+            bono: null,
+            terminales: null,
+            timestamp: 0
+        };
+        let terminalesArchivoCache = {};
         const bonoEspecifico = "{{ bono_nombre if bono_nombre else '' }}";
+
+        async function obtenerTerminalesBono(nombreBono) {
+            const ahora = Date.now();
+            const cacheValido = (
+                terminalesBonoCache.bono === nombreBono &&
+                terminalesBonoCache.terminales &&
+                (ahora - terminalesBonoCache.timestamp) < 60000
+            );
+
+            if (cacheValido) {
+                return terminalesBonoCache.terminales;
+            }
+
+            try {
+                const response = await fetch(`/api/bonos/${encodeURIComponent(nombreBono)}/terminales-disponibles`);
+                const data = await response.json();
+                if (data.success) {
+                    terminalesBonoCache = {
+                        bono: nombreBono,
+                        terminales: data.terminales || [],
+                        timestamp: ahora
+                    };
+                    return terminalesBonoCache.terminales;
+                }
+            } catch (error) {
+                console.error('Error al cargar terminales del bono:', error);
+            }
+
+            return terminalesBonoCache.terminales || [];
+        }
+
+        async function obtenerTerminalesArchivo(archivo) {
+            if (!archivo) {
+                return [];
+            }
+
+            const ahora = Date.now();
+            const cache = terminalesArchivoCache[archivo];
+            if (cache && cache.terminales && (ahora - cache.timestamp) < 60000) {
+                return cache.terminales;
+            }
+
+            try {
+                const response = await fetch(`/api/excel/${encodeURIComponent(archivo)}/terminales`);
+                const data = await response.json();
+                if (data.success) {
+                    terminalesArchivoCache[archivo] = {
+                        terminales: data.terminales || [],
+                        timestamp: ahora
+                    };
+                    return terminalesArchivoCache[archivo].terminales;
+                }
+            } catch (error) {
+                console.error('Error al cargar terminales del archivo:', error);
+            }
+
+            return cache?.terminales || [];
+        }
+
+        async function obtenerTotalesPorCarro(carros) {
+            const resultados = await Promise.all((carros || []).map(async (carro) => {
+                const archivo = carro.archivo_excel;
+                const terminales = await obtenerTerminalesArchivo(archivo);
+                return {
+                    carroId: String(carro.carro),
+                    total: terminales.length,
+                    archivo: archivo
+                };
+            }));
+
+            const totales = {};
+            resultados.forEach(item => {
+                if (item.carroId) {
+                    totales[item.carroId] = {
+                        total: item.total,
+                        archivo: item.archivo
+                    };
+                }
+            });
+
+            return totales;
+        }
+
+        async function obtenerProgresoPorCarro(nombreBono) {
+            try {
+                const response = await fetch(`/api/bonos/${encodeURIComponent(nombreBono)}/progreso-por-carro`);
+                const data = await response.json();
+                if (data.success) {
+                    return data.progreso_por_carro || {};
+                }
+            } catch (error) {
+                console.error('Error al cargar progreso por carro:', error);
+            }
+
+            return {};
+        }
 
         // Buscar bono activo y actualizar cada 3 segundos
         async function actualizarProgreso() {
@@ -217,7 +319,10 @@
                         const progresoData = await progresoResponse.json();
                         
                         if (progresoData.success) {
-                            mostrarProgresoBono(bono, progresoData.progreso || {});
+                            const terminalesBono = await obtenerTerminalesBono(bono.nombre);
+                            const progresoPorCarro = await obtenerProgresoPorCarro(bono.nombre);
+                            const totalesPorCarro = await obtenerTotalesPorCarro(bono.carros || []);
+                            mostrarProgresoBono(bono, progresoData.progreso || {}, terminalesBono, progresoPorCarro, totalesPorCarro);
                         }
                     } else {
                         mostrarSinBono();
@@ -246,7 +351,10 @@
                         const progresoData = await progresoResponse.json();
                         
                         if (progresoData.success) {
-                            mostrarProgresoBono(bono, progresoData.progreso || {});
+                            const terminalesBono = await obtenerTerminalesBono(bono.nombre);
+                            const progresoPorCarro = await obtenerProgresoPorCarro(bono.nombre);
+                            const totalesPorCarro = await obtenerTotalesPorCarro(bono.carros || []);
+                            mostrarProgresoBono(bono, progresoData.progreso || {}, terminalesBono, progresoPorCarro, totalesPorCarro);
                         }
                     } else {
                         mostrarSinBono();
@@ -257,26 +365,48 @@
             }
         }
 
-        function mostrarProgresoBono(bono, progreso) {
+        function mostrarProgresoBono(bono, progreso, terminalesBono, progresoPorCarro, totalesPorCarro) {
             // Calcular estadísticas
             const totalTerminales = Object.keys(progreso).length;
+            const totalTerminalesBonoFallback = (terminalesBono && terminalesBono.length) ? terminalesBono.length : totalTerminales;
             const terminalesCompletados = Object.values(progreso).filter(t => t.estado === 'completado').length;
-            const terminalesEnProceso = Object.values(progreso).filter(t => t.estado === 'en_proceso').length;
-            
-            // Calcular terminales totales (sumando todos los carros)
-            let totalPinesEngastados = 0;
-            let totalPinesPorEngastar = 0;
-            
-            for (const [terminal, info] of Object.entries(progreso)) {
-                const carrosCompletados = info.carros_completados?.length || 0;
-                totalPinesEngastados += carrosCompletados;
+            let totalTerminalesBono = 0;
+            let terminalesEngastados = 0;
+
+            for (const carro of (bono.carros || [])) {
+                const carroId = String(carro.carro);
+                const totalCarro = totalesPorCarro && totalesPorCarro[carroId] ? totalesPorCarro[carroId].total : 0;
+                totalTerminalesBono += totalCarro;
+
+                const dataCarro = progresoPorCarro ? progresoPorCarro[carroId] : null;
+                const completados = dataCarro && dataCarro.terminales_completados ? dataCarro.terminales_completados.length : 0;
+                terminalesEngastados += completados;
             }
-            
-            // Total de pines = terminales × carros
-            const totalPines = bono.carros.length * (totalTerminales || 1);
-            const porcentajeProgreso = totalPines > 0 ? Math.round((totalPinesEngastados / totalPines) * 100) : 0;
+
+            if (totalTerminalesBono === 0) {
+                totalTerminalesBono = totalTerminalesBonoFallback;
+            }
+
+            const terminalesPendientes = Math.max(totalTerminalesBono - terminalesEngastados, 0);
+            const porcentajeProgreso = totalTerminalesBono > 0 ? Math.round((terminalesEngastados / totalTerminalesBono) * 100) : 0;
             
             const content = document.getElementById('dashboard-content');
+            const carrosHtml = (bono.carros || []).map(carro => {
+                const carroId = String(carro.carro);
+                const dataCarro = progresoPorCarro ? progresoPorCarro[carroId] : null;
+                const completados = dataCarro && dataCarro.terminales_completados ? dataCarro.terminales_completados.length : 0;
+                const totalCarro = totalesPorCarro && totalesPorCarro[carroId] ? totalesPorCarro[carroId].total : 0;
+                const pendientes = Math.max(totalCarro - completados, 0);
+                const porcentajeCarro = totalCarro > 0 ? Math.round((completados / totalCarro) * 100) : 0;
+
+                return `
+                    <div class="progress-card">
+                        <div class="progress-card-value">${porcentajeCarro}%</div>
+                        <div class="progress-card-label">Carro ${carro.carro}: ${completados}/${totalCarro} terminales</div>
+                        <div class="progress-card-label" style="margin-top: 6px; color: #6c757d;">Pendientes: ${pendientes}</div>
+                    </div>
+                `;
+            }).join('');
             content.innerHTML = `
                 <div class="dashboard-header">
                     <div class="bono-nombre">${bono.nombre}</div>
@@ -290,8 +420,8 @@
                             <div class="bono-stat-label">Carros</div>
                         </div>
                         <div class="bono-stat">
-                            <div class="bono-stat-value">${totalTerminales}</div>
-                            <div class="bono-stat-label">Terminales en trabajo</div>
+                            <div class="bono-stat-value">${totalTerminalesBono}</div>
+                            <div class="bono-stat-label">Terminales del bono</div>
                         </div>
                     </div>
                 </div>
@@ -306,21 +436,28 @@
                     
                     <div class="progress-details">
                         <div class="progress-card">
+                            <div class="progress-card-value">${terminalesEngastados}</div>
+                            <div class="progress-card-label">✅ Terminales Engastados</div>
+                        </div>
+                        <div class="progress-card">
+                            <div class="progress-card-value">${terminalesPendientes}</div>
+                            <div class="progress-card-label">⏳ Terminales Pendientes</div>
+                        </div>
+                        <div class="progress-card">
                             <div class="progress-card-value">${terminalesCompletados}</div>
-                            <div class="progress-card-label">✅ Terminales Completados</div>
+                            <div class="progress-card-label">👤 Terminales Completados (Operario)</div>
                         </div>
                         <div class="progress-card">
-                            <div class="progress-card-value">${terminalesEnProceso}</div>
-                            <div class="progress-card-label">⏳ En Proceso</div>
+                            <div class="progress-card-value">${totalTerminales}</div>
+                            <div class="progress-card-label">👤 Terminales con Progreso</div>
                         </div>
-                        <div class="progress-card">
-                            <div class="progress-card-value">${totalPinesEngastados}</div>
-                            <div class="progress-card-label">📌 Pines Engastados</div>
-                        </div>
-                        <div class="progress-card">
-                            <div class="progress-card-value">${totalPines - totalPinesEngastados}</div>
-                            <div class="progress-card-label">📍 Pines Pendientes</div>
-                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-title">🚚 Progreso por Carro</div>
+                    <div class="progress-details">
+                        ${carrosHtml}
                     </div>
                 </div>
                 

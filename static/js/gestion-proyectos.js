@@ -543,6 +543,9 @@ async function cargarListaBonos() {
                             <button class="btn-small btn-primary" onclick="abrirModalEditarBono('${bono.nombre}')" style="margin-right: 5px;">
                                 <i class="fas fa-edit"></i> Editar
                             </button>
+                            <button class="btn-small btn-warning" onclick="resetearProgresoBonoConfirmar('${bono.nombre}')" style="margin-right: 5px; background: #ffc107; border-color: #ffc107;">
+                                <i class="fas fa-redo"></i> Reset Progreso
+                            </button>
                             <button class="btn-small btn-danger" onclick="eliminarBonoConfirmar('${bono.nombre}')">
                                 <i class="fas fa-trash"></i> Eliminar
                             </button>
@@ -586,6 +589,34 @@ async function eliminarBono(nombreBono) {
         }
     } catch (error) {
         mostrarMensaje('Error al eliminar el bono', 'error');
+        console.error(error);
+    }
+}
+
+function resetearProgresoBonoConfirmar(nombreBono) {
+    if (!confirm(`¿Estás seguro de resetear el progreso del bono "${nombreBono}"?\n\nEsta acción eliminará todo el progreso guardado y no se puede deshacer.`)) {
+        return;
+    }
+    
+    resetearProgresoBono(nombreBono);
+}
+
+async function resetearProgresoBono(nombreBono) {
+    try {
+        const response = await fetch(`/api/bonos/${nombreBono}/reset-progreso`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            mostrarMensaje('Progreso del bono reseteado correctamente', 'success');
+            cargarListaBonos();
+        } else {
+            mostrarMensaje(`Error: ${data.message}`, 'error');
+        }
+    } catch (error) {
+        mostrarMensaje('Error al resetear el progreso', 'error');
         console.error(error);
     }
 }

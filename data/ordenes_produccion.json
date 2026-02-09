@@ -211,8 +211,59 @@
       "cantidad": 1,
       "fecha_entrega": "2026-01-22",
       "prioridad": "urgente",
-      "estado": "pendiente",
-      "fecha_creacion": "2026-02-05T16:36:02.563974"
+      "estado": "engastando",
+      "fecha_creacion": "2026-02-05T16:36:02.563974",
+      "bono": "20260209_1",
+      "fecha_inicio_bono": "2026-02-09T13:14:12.869316",
+      "fecha_inicio_engaste": "2026-02-09T13:14:32.371741"
+    },
+    {
+      "id": "d74fef8a-f885-4280-8b46-606e2daf0b43",
+      "codigo_corte": "H0420724",
+      "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "numero": "60254684",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0420724-60254684-1-20260209",
+      "cantidad": 1,
+      "fecha_entrega": "2026-02-09",
+      "prioridad": "urgente",
+      "estado": "engastando",
+      "fecha_creacion": "2026-02-09T13:13:45.878529",
+      "bono": "20260209_1",
+      "fecha_inicio_bono": "2026-02-09T13:14:12.869324",
+      "fecha_inicio_engaste": "2026-02-09T13:14:32.371749"
+    },
+    {
+      "id": "7d5d0b72-1042-48fd-9bf0-dba4a920ab74",
+      "codigo_corte": "H0420724",
+      "archivo_excel": "h0420724_PC_CAB_BADEN_ED_004_APANTA.xlsx",
+      "numero": "60264864",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0420724-60264864-1-20260209",
+      "cantidad": 1,
+      "fecha_entrega": "2026-02-09",
+      "prioridad": "urgente",
+      "estado": "engastando",
+      "fecha_creacion": "2026-02-09T13:34:24.525436",
+      "bono": "20260209_2",
+      "fecha_inicio_bono": "2026-02-09T13:35:05.925956",
+      "fecha_inicio_engaste": "2026-02-09T13:35:34.557011"
+    },
+    {
+      "id": "d5a0c831-d705-4c90-a3af-258e8568637f",
+      "codigo_corte": "H0068722",
+      "archivo_excel": "LISTADO_CABLEADO_CORADIA_ITALIA_APANTALLADOS_MOD.xlsx",
+      "numero": "6024684",
+      "proyecto": "",
+      "descripcion": "Orden escaneada: H0068722-6024684-1-20260209",
+      "cantidad": 1,
+      "fecha_entrega": "2026-02-09",
+      "prioridad": "urgente",
+      "estado": "engastando",
+      "fecha_creacion": "2026-02-09T13:34:46.069278",
+      "bono": "20260209_2",
+      "fecha_inicio_bono": "2026-02-09T13:35:05.925966",
+      "fecha_inicio_engaste": "2026-02-09T13:35:34.557015"
     }
   ]
 }

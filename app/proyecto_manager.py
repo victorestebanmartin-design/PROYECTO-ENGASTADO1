@@ -356,8 +356,37 @@ class ProyectoManager:
             # Buscar si alguna orden está aún en estado "en_bono"
             self._actualizar_estado_ordenes_si_necesario(ordenes_bono, 'en_bono', 'engastando')
         
-        # Verificar si el terminal está completo (todos los carros)
-        if len(bono['progreso'][terminal]['carros_completados']) >= len(bono['carros']):
+        # Verificar si el terminal está completo
+        # Un terminal está completo cuando procesó TODOS los carros que LO TIENEN
+        carros_con_terminal = []
+        for carro_info in bono.get('carros', []):
+            archivo = carro_info.get('archivo_excel')
+            if not archivo:
+                continue
+            
+            # Verificar si este carro tiene el terminal
+            try:
+                temp_manager = ExcelManager(Config.UPLOAD_FOLDER, Config.CODIGOS_FILE)
+                if temp_manager.cargar_excel_directo(archivo):
+                    # Buscar si el terminal existe en este archivo
+                    registros = temp_manager.current_df.to_dict('records')
+                    terminal_en_carro = False
+                    for row in registros:
+                        de_term = str(row.get('De Terminal', '')).strip().upper()
+                        para_term = str(row.get('Para Terminal', '')).strip().upper()
+                        
+                        if de_term == terminal.upper() or para_term == terminal.upper():
+                            terminal_en_carro = True
+                            break
+                    
+                    if terminal_en_carro:
+                        carros_con_terminal.append(carro_info['carro'])
+            except Exception as e:
+                print(f"Error verificando terminal en carro: {e}")
+        
+        # Marcar como completado si procesó todos los carros que lo tienen
+        carros_completados_terminal = bono['progreso'][terminal]['carros_completados']
+        if len(carros_con_terminal) > 0 and all(c in carros_completados_terminal for c in carros_con_terminal):
             bono['progreso'][terminal]['estado'] = 'completado'
         
         # Verificar si el bono está completamente terminado
@@ -668,6 +697,23 @@ class ProyectoManager:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error al imprimir etiqueta de finalización: {e}")
+    
+    def resetear_progreso_bono(self, nombre_bono):
+        """Resetear todo el progreso de un bono (progreso y progreso_por_carro)"""
+        if 'bonos' not in self.proyectos:
+            return False
+        
+        bono = self.proyectos['bonos'].get(nombre_bono)
+        if not bono:
+            return False
+        
+        # Limpiar progreso
+        bono['progreso'] = {}
+        bono['progreso_por_carro'] = {}
+        
+        # Guardar cambios
+        self.guardar_proyectos()
+        return True
 
 # Instancia global
 proyecto_manager = ProyectoManager()

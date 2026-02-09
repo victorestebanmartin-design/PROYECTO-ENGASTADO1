@@ -33,6 +33,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Abrir dashboard de progreso con el bono actual
+ */
+function abrirDashboardProgreso() {
+    if (bonoActual && bonoActual.nombre) {
+        // Abrir dashboard con el bono actual
+        window.open(`/visualizacion/${encodeURIComponent(bonoActual.nombre)}`, '_blank');
+    } else {
+        // No hay bono cargado, abrir dashboard general
+        mostrarMensaje('Carga un bono primero para ver su progreso específico', 'warning');
+        window.open('/progreso-bono', '_blank');
+    }
+}
+
+/**
  * Cargar grupos de etiquetas desde el JSON generado
  */
 async function cargarGruposEtiquetas() {
@@ -340,6 +354,9 @@ async function cargarMaquinas(puestoId) {
     const maquinasGrid = document.getElementById('maquinas-grid');
     maquinasGrid.innerHTML = '';
     
+    // Recargar progreso del bono para mostrar datos actualizados
+    await cargarProgresoDelBono(bonoActual.nombre);
+    
     // Obtener terminales que tienen datos en el bono actual
     let terminalesConDatos = [];
     try {
@@ -545,20 +562,29 @@ async function cargarAreaTrabajoV2() {
 /**
  * Navegación - Volver a selección de puestos
  */
-function volverAPuestos() {
+async function volverAPuestos() {
     document.getElementById('paso-maquina').classList.add('hidden');
     document.getElementById('paso-puesto').classList.remove('hidden');
     puestoSeleccionado = null;
+    
+    // Recargar progreso y puestos para mostrar datos actualizados
+    await cargarProgresoDelBono(bonoActual.nombre);
+    await cargarPuestos();
 }
 
 /**
  * Navegación - Cambiar máquina
  */
-function cambiarMaquina() {
+async function cambiarMaquina() {
     document.getElementById('paso-trabajo').classList.add('hidden');
     document.getElementById('paso-maquina').classList.remove('hidden');
     maquinaSeleccionada = null;
     terminalesAsignados = [];
+    
+    // Recargar progreso y máquinas para mostrar datos actualizados
+    if (puestoSeleccionado) {
+        await cargarMaquinas(puestoSeleccionado.id);
+    }
 }
 
 /**
@@ -2409,20 +2435,8 @@ async function paqueteCompletado() {
         // Guardar progreso del carro actual inmediatamente
         const carroActual = carrosDelBono[carroActualIndex];
         
-        // Recopilar terminales del proyecto para este carro
-        const terminalesDelProyecto = new Set();
-        const response = await fetch(`/api/datos_trabajo_v3?archivo=${encodeURIComponent(carroActual.archivo_excel)}&terminal=${encodeURIComponent(terminalActual)}&maquina=${maquinaSeleccionada.id}`);
-        const data = await response.json();
-        
-        if (data.success && data.paquetes) {
-            data.paquetes.forEach(paquete => {
-                if (paquete.elemento) {
-                    terminalesDelProyecto.add(paquete.elemento);
-                }
-            });
-        }
-        
-        const listaTerminalesProyecto = Array.from(terminalesDelProyecto);
+        // Guardar el terminal engastado para este carro
+        const listaTerminalesProyecto = [terminalActual];
         
         // Guardar progreso de este carro
         await fetch(`/api/bonos/${bonoActual.nombre}/progreso`, {
@@ -2462,61 +2476,12 @@ async function paqueteCompletado() {
  * Terminar trabajo del terminal actual
  */
 async function terminarTerminal() {
-    try {
-        // Recopilar todos los terminales únicos del proyecto que se han trabajado
-        const terminalesDelProyecto = new Set();
-        
-        // Recorrer todos los carros del bono
-        for (let i = 0; i < carrosDelBono.length; i++) {
-            const carro = carrosDelBono[i];
-            
-            // Obtener los paquetes de este carro para este terminal
-            try {
-                const response = await fetch(`/api/datos_trabajo_v3?archivo=${encodeURIComponent(carro.archivo_excel)}&terminal=${encodeURIComponent(terminalActual)}&maquina=${maquinaSeleccionada.id}`);
-                const data = await response.json();
-                
-                if (data.success && data.paquetes) {
-                    // Añadir todos los terminales únicos (elemento) de los paquetes
-                    data.paquetes.forEach(paquete => {
-                        if (paquete.elemento) {
-                            terminalesDelProyecto.add(paquete.elemento);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error(`Error obteniendo terminales del carro ${carro.carro}:`, error);
-            }
-        }
-        
-        // Convertir Set a Array
-        const listaTerminalesProyecto = Array.from(terminalesDelProyecto);
-        
-        // Guardar progreso en el servidor para cada carro procesado
-        for (let i = 0; i < carrosDelBono.length; i++) {
-            const carro = carrosDelBono[i];
-            await fetch(`/api/bonos/${bonoActual.nombre}/progreso`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    terminal: terminalActual,
-                    carro: carro.carro,
-                    terminales_proyecto: listaTerminalesProyecto
-                })
-            });
-        }
-        
-        console.log('✅ Progreso guardado correctamente para todos los carros');
-        console.log('📍 Terminales del proyecto:', listaTerminalesProyecto);
-    } catch (error) {
-        console.error('Error al guardar progreso:', error);
-    }
+    // El progreso ya se guardó en paqueteCompletado() para cada carro procesado
+    console.log(`✅ Terminal ${terminalActual} completado en todos sus carros`);
     
-    // Agregar terminal a completados solo si no está ya
-    if (!terminalesCompletados.includes(terminalActual)) {
-        terminalesCompletados.push(terminalActual);
-    }
+    // Recargar progreso desde el backend para obtener estado actualizado
+    await cargarProgresoDelBono(bonoActual.nombre);
+    await cargarProgresoMaquina(); // Actualizar terminalesCompletados[] basado en progreso real
     
     // Actualizar visualización de terminales inmediatamente
     mostrarTerminalesAsignados();
