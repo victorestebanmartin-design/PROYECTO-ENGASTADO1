@@ -157,6 +157,42 @@ def etiquetas():
     """Página de generación de etiquetas para elementos de cortes"""
     return render_template('etiquetas.html')
 
+@bp.route('/api/codigos_cortes/listar', methods=['GET'])
+def listar_codigos_cortes():
+    """Obtener lista de todos los códigos de corte disponibles"""
+    try:
+        codigos_file = current_app.config['CODIGOS_FILE']
+        
+        if not os.path.exists(codigos_file):
+            return jsonify({
+                'success': True,
+                'codigos': []
+            })
+        
+        with open(codigos_file, 'r', encoding='utf-8') as f:
+            codigos_data = json.load(f)
+        
+        cortes = codigos_data.get('cortes', [])
+        
+        # Retornar solo los códigos y archivos
+        codigos_lista = [{
+            'codigo': corte.get('codigo_barras', ''),
+            'archivo': corte.get('archivo', ''),
+            'descripcion': corte.get('descripcion', ''),
+            'proyecto': corte.get('proyecto', '')
+        } for corte in cortes]
+        
+        return jsonify({
+            'success': True,
+            'codigos': codigos_lista
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error al listar códigos: {str(e)}'
+        })
+
 @bp.route('/api/validar_codigo_corte', methods=['POST'])
 def validar_codigo_corte():
     """Validar si un código de corte tiene archivo Excel asociado"""

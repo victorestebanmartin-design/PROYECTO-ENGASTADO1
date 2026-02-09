@@ -7,6 +7,8 @@ let todasLasOrdenes = []; // Array global para filtrado
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
     cargarOrdenes();
+    cargarCodigosCortes();
+    establecerFechaActual();
     
     // Event listener para formulario de escaneo
     const formEscaneo = document.getElementById('form-escanear-orden');
@@ -20,10 +22,10 @@ document.addEventListener('DOMContentLoaded', function() {
         formOrden.addEventListener('submit', registrarOrden);
     }
     
-    // Validación en tiempo real del código de corte
-    const inputCodigoCorte = document.getElementById('codigo-corte');
-    if (inputCodigoCorte) {
-        inputCodigoCorte.addEventListener('blur', validarCodigoCorte);
+    // Event listener para cambio de código de corte
+    const selectCodigoCorte = document.getElementById('orden-codigo-corte');
+    if (selectCodigoCorte) {
+        selectCodigoCorte.addEventListener('change', mostrarInfoArchivo);
     }
     
     // Auto-focus en el campo de código de barras
@@ -34,40 +36,65 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Validar código de corte en tiempo real
+ * Establecer fecha actual por defecto
  */
-async function validarCodigoCorte(e) {
-    const codigoCorte = e.target.value.trim().toUpperCase();
-    const validationDiv = document.getElementById('validation-corte');
-    
-    if (!codigoCorte) {
-        validationDiv.textContent = '';
-        validationDiv.className = '';
-        return;
+function establecerFechaActual() {
+    const inputFecha = document.getElementById('orden-fecha');
+    if (inputFecha) {
+        const hoy = new Date();
+        const year = hoy.getFullYear();
+        const month = String(hoy.getMonth() + 1).padStart(2, '0');
+        const day = String(hoy.getDate()).padStart(2, '0');
+        inputFecha.value = `${year}-${month}-${day}`;
     }
-    
+}
+
+/**
+ * Cargar códigos de corte disponibles
+ */
+async function cargarCodigosCortes() {
     try {
-        const response = await fetch('/api/validar_codigo_corte', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ codigo_corte: codigoCorte })
-        });
-        
+        const response = await fetch('/api/codigos_cortes/listar');
         const data = await response.json();
         
-        if (data.success) {
-            validationDiv.textContent = data.mensaje;
-            validationDiv.className = data.tiene_excel ? 'validation-success' : 'validation-warning';
-        } else {
-            validationDiv.textContent = '';
-            validationDiv.className = '';
+        if (data.success && data.codigos) {
+            const select = document.getElementById('orden-codigo-corte');
+            if (select) {
+                // Limpiar opciones existentes excepto la primera
+                select.innerHTML = '<option value="">-- Seleccionar código --</option>';
+                
+                // Agregar códigos
+                data.codigos.forEach(corte => {
+                    const option = document.createElement('option');
+                    option.value = corte.codigo;
+                    option.textContent = `${corte.codigo} - ${corte.descripcion || corte.proyecto || ''}`;
+                    option.dataset.archivo = corte.archivo;
+                    select.appendChild(option);
+                });
+            }
         }
     } catch (error) {
-        console.error('Error validando código:', error);
-        validationDiv.textContent = '';
-        validationDiv.className = '';
+        console.error('Error al cargar códigos de corte:', error);
+    }
+}
+
+/**
+ * Mostrar información del archivo asociado
+ */
+function mostrarInfoArchivo() {
+    const select = document.getElementById('orden-codigo-corte');
+    const infoDiv = document.getElementById('info-archivo');
+    
+    if (select && infoDiv) {
+        const selectedOption = select.options[select.selectedIndex];
+        const archivo = selectedOption.dataset.archivo;
+        
+        if (archivo) {
+            infoDiv.textContent = `📄 ${archivo}`;
+            infoDiv.style.color = '#0d6efd';
+        } else {
+            infoDiv.textContent = '';
+        }
     }
 }
 
@@ -197,6 +224,9 @@ function toggleFormularioManual() {
     const form = document.getElementById('form-nueva-orden');
     if (form.style.display === 'none') {
         form.style.display = 'block';
+        // Establecer valores por defecto cada vez que se abre
+        establecerFechaActual();
+        document.getElementById('orden-cantidad').value = '1';
     } else {
         form.style.display = 'none';
     }
@@ -218,15 +248,30 @@ async function registrarOrden(e) {
     
     const codigoCorte = document.getElementById('orden-codigo-corte').value.trim();
     const numero = document.getElementById('orden-numero').value.trim();
-    const proyecto = document.getElementById('orden-proyecto').value.trim();
-    const descripcion = document.getElementById('orden-descripcion').value.trim();
     const cantidad = document.getElementById('orden-cantidad').value;
     const fecha = document.getElementById('orden-fecha').value;
-    const prioridad = document.getElementById('orden-prioridad').value;
     
-    if (!codigoCorte || !numero || !cantidad || !fecha || !prioridad) {
+    if (!codigoCorte || !numero || !cantidad || !fecha) {
         mostrarMensaje('mensaje-orden', 'Por favor completa todos los campos obligatorios', 'error');
         return;
+    }
+    
+    // Calcular prioridad automática basada en la fecha
+    const fechaOrden = new Date(fecha);
+    const hoy = new Date();
+    const diasRestantes = Math.ceil((fechaOrden - hoy) / (1000 * 60 * 60 * 24));
+    let prioridad = 'media';
+    
+    if (diasRestantes < 0) {
+        prioridad = 'urgente';
+    } else if (diasRestantes <= 3) {
+        prioridad = 'urgente';
+    } else if (diasRestantes <= 7) {
+        prioridad = 'alta';
+    } else if (diasRestantes <= 14) {
+        prioridad = 'media';
+    } else {
+        prioridad = 'baja';
     }
     
     try {
@@ -238,8 +283,8 @@ async function registrarOrden(e) {
             body: JSON.stringify({
                 codigo_corte: codigoCorte,
                 numero,
-                proyecto,
-                descripcion,
+                proyecto: '',
+                descripcion: '',
                 cantidad: parseInt(cantidad),
                 fecha_entrega: fecha,
                 prioridad
@@ -249,10 +294,14 @@ async function registrarOrden(e) {
         const data = await response.json();
         
         if (data.success) {
-            mostrarMensaje('mensaje-orden', 'Orden registrada correctamente', 'success');
+            mostrarMensaje('mensaje-orden', '✅ Orden registrada correctamente', 'success');
             
-            // Limpiar formulario
+            // Limpiar formulario y restablecer valores por defecto
             document.getElementById('form-nueva-orden').reset();
+            document.getElementById('orden-codigo-corte').value = '';
+            document.getElementById('orden-cantidad').value = '1';
+            establecerFechaActual();
+            document.getElementById('info-archivo').textContent = '';
             
             // Recargar lista
             setTimeout(() => {
@@ -365,12 +414,10 @@ function mostrarOrdenes(ordenes) {
             <thead>
                 <tr>
                     <th>Código Corte</th>
-                    <th>Archivo Excel</th>
+                    <th style="max-width: 200px;">Archivo Excel</th>
                     <th>Número Orden</th>
-                    <th>Proyecto</th>
                     <th>Cantidad</th>
                     <th>Fecha Liberación</th>
-                    <th>Prioridad</th>
                     <th>Estado</th>
                     <th>Bono</th>
                     <th>Acciones</th>
@@ -380,42 +427,39 @@ function mostrarOrdenes(ordenes) {
     `;
     
     ordenes.forEach(orden => {
-        const prioridadIcono = {
-            'baja': '🟢',
-            'media': '🟡',
-            'alta': '🟠',
-            'urgente': '🔴'
+        // Estados con badges profesionales
+        const estadoBadge = {
+            'pendiente': '<span style="display:inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #e2e3e5; color: #383d41;">Pendiente</span>',
+            'en_bono': '<span style="display:inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #cfe2ff; color: #084298;">En Bono</span>',
+            'engastando': '<span style="display:inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #fff3cd; color: #997404;">Engastando</span>',
+            'finalizado': '<span style="display:inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; background: #d1e7dd; color: #0a3622;">Finalizado</span>'
         };
         
-        // Estados con iconos y colores
-        const estadoInfo = {
-            'pendiente': { icono: '⏳', color: '#6c757d', texto: 'Pendiente' },
-            'en_bono': { icono: '📋', color: '#0d6efd', texto: 'En Bono' },
-            'engastando': { icono: '⚙️', color: '#ffc107', texto: 'Engastando' },
-            'finalizado': { icono: '✅', color: '#28a745', texto: 'Finalizado' }
-        };
+        const estadoActual = estadoBadge[orden.estado] || `<span style="color: #6c757d;">${orden.estado}</span>`;
         
-        const estadoActual = estadoInfo[orden.estado] || { icono: '❓', color: '#6c757d', texto: orden.estado };
-        const archivoExcel = orden.archivo_excel ? `<span title="${orden.archivo_excel}">📄 ${orden.archivo_excel.substring(0, 20)}...</span>` : '<span style="color: #ef4444;">❌ No asociado</span>';
+        // Truncar nombre de archivo si es muy largo
+        let archivoDisplay = '';
+        if (orden.archivo_excel) {
+            const nombreArchivo = orden.archivo_excel;
+            archivoDisplay = `<div style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #0d6efd; font-size: 0.9em;" title="${nombreArchivo}">${nombreArchivo}</div>`;
+        } else {
+            archivoDisplay = '<span style="color: #dc3545; font-size: 0.85em;">No asociado</span>';
+        }
         
         html += `
             <tr>
-                <td><strong>${orden.codigo_corte || '-'}</strong></td>
-                <td>${archivoExcel}</td>
-                <td>${orden.numero}</td>
-                <td>${orden.proyecto || '-'}</td>
-                <td>${orden.cantidad}</td>
-                <td>${formatearFecha(orden.fecha_entrega)}</td>
-                <td>${prioridadIcono[orden.prioridad] || ''} ${orden.prioridad}</td>
-                <td><span style="color: ${estadoActual.color}; font-weight: 600;">${estadoActual.icono} ${estadoActual.texto}</span></td>
-                <td>${orden.bono ? `<strong style="color: #0d6efd;">📋 ${orden.bono}</strong>` : '<span style="color: #adb5bd;">-</span>'}</td>
-                <td>
+                <td><strong style="color: #212529;">${orden.codigo_corte || '-'}</strong></td>
+                <td>${archivoDisplay}</td>
+                <td style="font-weight: 500;">${orden.numero}</td>
+                <td style="text-align: center; font-weight: 600;">${orden.cantidad}</td>
+                <td style="font-size: 0.9em;">${formatearFecha(orden.fecha_entrega)}</td>
+                <td>${estadoActual}</td>
+                <td>${orden.bono ? `<strong style="color: #0d6efd;">${orden.bono}</strong>` : '<span style="color: #adb5bd;">-</span>'}</td>
+                <td style="white-space: nowrap;">
                     ${orden.estado === 'pendiente' ? `
-                        <button onclick="editarOrden('${orden.id}')" class="btn-small btn-secondary">✏️ Editar</button>
-                        <button onclick="eliminarOrden('${orden.id}')" class="btn-small btn-danger">🗑️ Eliminar</button>
-                    ` : `
-                        <span style="color: #6c757d; font-size: 0.9em;">-</span>
-                    `}
+                        <button onclick="editarOrden('${orden.id}')" class="btn-small btn-secondary" style="margin-right: 5px;">Editar</button>
+                    ` : ''}
+                    <button onclick="eliminarOrden('${orden.id}', '${orden.estado}', '${orden.numero}')" class="btn-small btn-danger">Eliminar</button>
                 </td>
             </tr>
         `;
@@ -449,8 +493,28 @@ function actualizarEstadisticas(ordenes) {
 /**
  * Eliminar orden
  */
-async function eliminarOrden(id) {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta orden?')) {
+async function eliminarOrden(id, estado, numeroOrden) {
+    // Mensaje de advertencia según el estado
+    let mensaje = '';
+    
+    switch(estado) {
+        case 'pendiente':
+            mensaje = `¿Eliminar la orden ${numeroOrden}?\n\nEsta acción no se puede deshacer.`;
+            break;
+        case 'en_bono':
+            mensaje = `⚠️ ADVERTENCIA: La orden ${numeroOrden} está asignada a un bono.\n\nSi la eliminas, el bono quedará incompleto.\n\n¿Continuar con la eliminación?`;
+            break;
+        case 'engastando':
+            mensaje = `⚠️ ADVERTENCIA: La orden ${numeroOrden} está siendo engastada.\n\nEliminarla puede causar inconsistencias en el proceso.\n\n¿Continuar de todos modos?`;
+            break;
+        case 'finalizado':
+            mensaje = `La orden ${numeroOrden} ya está finalizada.\n\n¿Estás seguro de eliminarla del sistema?`;
+            break;
+        default:
+            mensaje = `¿Eliminar la orden ${numeroOrden}?`;
+    }
+    
+    if (!confirm(mensaje)) {
         return;
     }
     
@@ -462,14 +526,14 @@ async function eliminarOrden(id) {
         const data = await response.json();
         
         if (data.success) {
-            alert('Orden eliminada correctamente');
+            alert('✅ Orden eliminada correctamente');
             cargarOrdenes();
         } else {
-            alert('Error al eliminar la orden: ' + (data.message || ''));
+            alert('❌ Error al eliminar la orden: ' + (data.message || ''));
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error al eliminar la orden');
+        alert('❌ Error al eliminar la orden');
     }
 }
 
